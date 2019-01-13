@@ -13,7 +13,7 @@ type Job struct {
 	JobID          string
 	JobEcexutionID string
 	JobAttributes  map[string]string
-	CommandSring   string
+	ComamndString  string
 	Environment    []string
 	JobStatus      string
 	ExecutionLog   string
@@ -21,11 +21,11 @@ type Job struct {
 }
 
 // NewJob is...
-func NewJob(jobID, CommandSring string, environment []string, jobAttributes map[string]string) *Job {
+func NewJob(jobID, comamndString string, environment []string, jobAttributes map[string]string) *Job {
 	j := new(Job)
 	j.JobID = jobID
 	j.JobEcexutionID = jobID + uniuri.New()
-	j.CommandSring = CommandSring
+	j.ComamndString = comamndString
 	j.Environment = environment
 	j.JobAttributes = jobAttributes
 	return j
@@ -33,7 +33,7 @@ func NewJob(jobID, CommandSring string, environment []string, jobAttributes map[
 
 // Execute is...
 func (j *Job) Execute(ctx context.Context) error {
-	j.Cmd = *exec.Command("sh", "-c", j.CommandSring)
+	j.Cmd = *exec.Command("sh", "-c", j.ComamndString)
 	j.Cmd.Env = append(os.Environ())
 	j.Cmd.Env = append(j.Environment)
 	j.Cmd.Stderr = os.Stderr
