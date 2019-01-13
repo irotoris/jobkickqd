@@ -2,7 +2,6 @@ package job
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/exec"
 
@@ -33,31 +32,27 @@ func NewJob(jobID, CommandSring string, environment []string, jobAttributes map[
 }
 
 // Execute is...
-func (job *Job) Execute(ctx context.Context) (bool, error) {
-	cmd := exec.Command("sh", "-c", job.CommandSring)
-	cmd.Env = append(os.Environ())
-	cmd.Env = append(job.Environment)
+func (j *Job) Execute(ctx context.Context) error {
+	j.Cmd = *exec.Command("sh", "-c", j.CommandSring)
+	j.Cmd.Env = append(os.Environ())
+	j.Cmd.Env = append(j.Environment)
+	j.Cmd.Stderr = os.Stderr
+	j.Cmd.Stdout = os.Stdout
 
-	job.Cmd = *cmd
+	// TODO: implement asyn
+	j.Cmd.Start()
+	// TODO: implement streaming log output
+	j.Cmd.Wait()
+	// TODO: implement bulk all log output
 
-	// TODO:implement asyn
-	out, err := cmd.Output()
-	if err != nil {
-		return false, err
-	}
-
-	// TODO:implement stdout/stderr/logdriver
-	fmt.Print(string(out))
-
-	// TODO:implement return PID or something infomation
-	return true, nil
+	return nil
 }
 
 // Kill is...
-func (job *Job) Kill(ctx context.Context) (bool, error) {
-	err := job.Cmd.Process.Kill()
+func (j *Job) Kill(ctx context.Context) error {
+	err := j.Cmd.Process.Kill()
 	if err != nil {
-		return false, err
+		return err
 	}
-	return true, nil
+	return nil
 }
