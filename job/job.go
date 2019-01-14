@@ -42,6 +42,9 @@ func (j *Job) Execute(ctx context.Context) error {
 	j.Cmd = *exec.Command("sh", "-c", j.ComamndString)
 	j.Cmd.Env = append(os.Environ())
 	j.Cmd.Env = append(j.Environment)
+	if _, err := os.Stat("logs"); os.IsNotExist(err) {
+		os.Mkdir("logs/", 0755)
+	}
 	logFilename := "logs/" + j.JobEcexutionID + ".log"
 	logFile, err := os.OpenFile(logFilename, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
@@ -81,11 +84,11 @@ func (j *Job) Kill(ctx context.Context) error {
 	return nil
 }
 
-// WriteStatus is...
+// changeJobStateAtEnd is...
 func (j *Job) changeJobStateAtEnd(ctx context.Context) {
 	state := j.Cmd.ProcessState
 	if state.Exited() && state.Success() {
-		j.JobState = "SUCCEDDED"
+		j.JobState = "SUCCEEDED"
 	} else if state.Exited() && !state.Success() {
 		j.JobState = "FAILED"
 	}
