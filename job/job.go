@@ -2,32 +2,38 @@ package job
 
 import (
 	"context"
+	"io/ioutil"
 	"os"
 	"os/exec"
+	"time"
 
 	"github.com/dchest/uniuri"
 )
 
 // Job is...
 type Job struct {
-	JobID          string
-	JobEcexutionID string
-	JobAttributes  map[string]string
-	ComamndString  string
-	Environment    []string
-	JobStatus      string
-	ExecutionLog   string
-	Cmd            exec.Cmd
+	JobID           string
+	JobEcexutionID  string
+	ComamndString   string
+	Environment     []string
+	JobState        string
+	ExecutionLog    string
+	SubimitedAt     time.Time
+	StartedAt       time.Time
+	FinishedAt      time.Time
+	TimeoutDuration time.Duration
+	Cmd             exec.Cmd
 }
 
 // NewJob is...
-func NewJob(jobID, comamndString string, environment []string, jobAttributes map[string]string) *Job {
+func NewJob(jobID, comamndString string, environment []string, timeoutDuration time.Duration) *Job {
 	j := new(Job)
 	j.JobID = jobID
-	j.JobEcexutionID = jobID + uniuri.New()
+	j.JobEcexutionID = jobID + "-" + uniuri.New()
 	j.ComamndString = comamndString
 	j.Environment = environment
-	j.JobAttributes = jobAttributes
+	j.SubimitedAt = time.Now()
+	j.TimeoutDuration = timeoutDuration
 	return j
 }
 
@@ -36,15 +42,33 @@ func (j *Job) Execute(ctx context.Context) error {
 	j.Cmd = *exec.Command("sh", "-c", j.ComamndString)
 	j.Cmd.Env = append(os.Environ())
 	j.Cmd.Env = append(j.Environment)
-	j.Cmd.Stderr = os.Stderr
-	j.Cmd.Stdout = os.Stdout
+	logFilename := "logs/" + j.JobEcexutionID + ".log"
+	logFile, err := os.OpenFile(logFilename, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
+	if err != nil {
+		return err
+	}
+	defer logFile.Close()
+	j.Cmd.Stderr = logFile
+	j.Cmd.Stdout = logFile
+	j.StartedAt = time.Now()
 
 	// TODO: implement asyn
 	j.Cmd.Start()
-	// TODO: implement streaming log output
-	j.Cmd.Wait()
-	// TODO: implement bulk all log output
+	j.JobState = "RUNNING"
 
+	// TODO: implement streaming log output.
+	// TODO: implement update job state to datastore or other KVS.
+	j.Cmd.Wait()
+	j.FinishedAt = time.Now()
+	logFile.Close()
+
+	// TODO: implement bulk all log output
+	data, err := ioutil.ReadFile(logFilename)
+	if err != nil {
+		data = make([]byte, 0)
+	}
+	j.ExecutionLog = string(data)
+	j.changeJobStateAtEnd(ctx)
 	return nil
 }
 
@@ -55,4 +79,14 @@ func (j *Job) Kill(ctx context.Context) error {
 		return err
 	}
 	return nil
+}
+
+// WriteStatus is...
+func (j *Job) changeJobStateAtEnd(ctx context.Context) {
+	state := j.Cmd.ProcessState
+	if state.Exited() && state.Success() {
+		j.JobState = "SUCCEDDED"
+	} else if state.Exited() && !state.Success() {
+		j.JobState = "FAILED"
+	}
 }
