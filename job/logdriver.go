@@ -14,28 +14,42 @@ type LogDriver interface {
 
 // PubSubLogDriver is ...
 type PubSubLogDriver struct {
-	projectID            string
-	topicName            string
-	jsonCredentialString string
+	projectID string
+	topicName string
+	clinet    pubsub.Client
 }
 
-func (ld *PubSubLogDriver) Write(ctx context.Context, message string) error {
+// NewPubSubLogDriver is ...
+func NewPubSubLogDriver(ctx context.Context, projectID, topicName string) (*PubSubLogDriver, error) {
+	ld := new(PubSubLogDriver)
+	ld.projectID = projectID
+	ld.topicName = topicName
 	client, err := pubsub.NewClient(ctx, ld.projectID)
 	if err != nil {
-		// TODO: Handle error.
+		return nil, err
+	}
+	ld.clinet = *client
+	return ld, nil
+}
+
+func (ld *PubSubLogDriver) Write(ctx context.Context, message string, attributes map[string]string) error {
+	client, err := pubsub.NewClient(ctx, ld.projectID)
+	if err != nil {
+		return err
 	}
 	topic := client.Topic(ld.topicName)
 	defer topic.Stop()
 	var results []*pubsub.PublishResult
 	r := topic.Publish(ctx, &pubsub.Message{
-		Data: []byte(message),
+		Data:       []byte(message),
+		Attributes: attributes,
 	})
 	results = append(results, r)
-	// Do other work ...
+
 	for _, r := range results {
 		id, err := r.Get(ctx)
 		if err != nil {
-			// TODO: Handle error.
+			return err
 		}
 		fmt.Printf("Published a message with a message ID: %s\n", id)
 	}
