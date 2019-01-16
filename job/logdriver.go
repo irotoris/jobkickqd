@@ -3,6 +3,8 @@ package job
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"cloud.google.com/go/pubsub"
 )
@@ -16,7 +18,7 @@ type LogDriver interface {
 type PubSubLogDriver struct {
 	projectID string
 	topicName string
-	clinet    pubsub.Client
+	client    pubsub.Client
 }
 
 // NewPubSubLogDriver is ...
@@ -28,16 +30,12 @@ func NewPubSubLogDriver(ctx context.Context, projectID, topicName string) (*PubS
 	if err != nil {
 		return nil, err
 	}
-	ld.clinet = *client
+	ld.client = *client
 	return ld, nil
 }
 
 func (ld *PubSubLogDriver) Write(ctx context.Context, message string, attributes map[string]string) error {
-	client, err := pubsub.NewClient(ctx, ld.projectID)
-	if err != nil {
-		return err
-	}
-	topic := client.Topic(ld.topicName)
+	topic := ld.client.Topic(ld.topicName)
 	defer topic.Stop()
 	var results []*pubsub.PublishResult
 	r := topic.Publish(ctx, &pubsub.Message{
@@ -58,9 +56,39 @@ func (ld *PubSubLogDriver) Write(ctx context.Context, message string, attributes
 
 // FileLogDriver is ...
 type FileLogDriver struct {
-	filename string
+	filePath string
+	file     os.File
+}
+
+// NewFileLogDriver is ///
+func NewFileLogDriver(filePath string) (*FileLogDriver, error) {
+	ld := new(FileLogDriver)
+	ld.filePath = filePath
+	logDirectory, _ := filepath.Split(filePath)
+	err := os.MkdirAll(logDirectory, 0755)
+	if err != nil {
+		return nil, err
+	}
+	logFile, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
+	if err != nil {
+		return nil, err
+	}
+	ld.file = *logFile
+
+	return ld, nil
 }
 
 func (ld *FileLogDriver) Write(ctx context.Context, message string) error {
+	if _, err := ld.file.Write(([]byte)(message)); err != err {
+		return err
+	}
+	return nil
+}
+
+// Close is ...
+func (ld *FileLogDriver) Close(ctx context.Context) error {
+	if err := ld.file.Close(); err != nil {
+		return err
+	}
 	return nil
 }
