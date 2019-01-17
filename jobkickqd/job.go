@@ -1,4 +1,4 @@
-package job
+package jobkickqd
 
 import (
 	"context"
@@ -42,6 +42,7 @@ func (j *Job) Execute(ctx context.Context) error {
 	j.Cmd = *exec.Command("sh", "-c", j.ComamndString)
 	j.Cmd.Env = append(os.Environ())
 	j.Cmd.Env = append(j.Environment)
+	// TODO: via log driver
 	if _, err := os.Stat("logs"); os.IsNotExist(err) {
 		os.Mkdir("logs/", 0755)
 	}
@@ -55,12 +56,12 @@ func (j *Job) Execute(ctx context.Context) error {
 	j.Cmd.Stdout = logFile
 	j.StartedAt = time.Now()
 
-	// TODO: implement asyn
 	j.Cmd.Start()
 	j.JobState = "RUNNING"
 
-	// TODO: implement streaming log output.
+	// TODO: implement streaming log output. finaly put end mark log.
 	// TODO: implement update job state to datastore or other KVS.
+	// TODO: implement stop commands when daemon process stop.(Or this responsibility is queue daemon.)
 	j.Cmd.Wait()
 	j.FinishedAt = time.Now()
 	logFile.Close()
@@ -68,7 +69,9 @@ func (j *Job) Execute(ctx context.Context) error {
 	// TODO: implement bulk all log output
 	data, err := ioutil.ReadFile(logFilename)
 	if err != nil {
-		data = make([]byte, 0)
+		j.ExecutionLog = "[jobkickqd][daemon]ERROR:Cannot open a log file." + err.Error()
+	} else {
+		j.ExecutionLog = string(data)
 	}
 	j.ExecutionLog = string(data)
 	j.changeJobStateAtEnd(ctx)
