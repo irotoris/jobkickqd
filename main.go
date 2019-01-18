@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"./job"
+	"github.com/irotoris/jobkickqd/jobkickqd"
 )
 
 func main() {
@@ -18,7 +18,7 @@ func main() {
 		cmdString := "echo " + jobID + ":  `date \"+%Y-%m-%d %H:%M:%S\"`"
 		envs := []string{"ENV=dev", "EDITOR=vim"}
 		timeoutDuration := 60 * time.Second
-		j := job.NewJob(jobID, cmdString, envs, timeoutDuration)
+		j := jobkickqd.NewJob(jobID, cmdString, envs, timeoutDuration)
 		ctx := context.Background()
 
 		errChan := make(chan error, 1)
