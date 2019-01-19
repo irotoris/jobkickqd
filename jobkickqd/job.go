@@ -13,12 +13,12 @@ import (
 // Job is...
 type Job struct {
 	JobID           string
-	JobEcexutionID  string
-	ComamndString   string
+	JobExecutionID  string
+	CommandString   string
 	Environment     []string
 	JobState        string
 	ExecutionLog    string
-	SubimitedAt     time.Time
+	SubmittedAt     time.Time
 	StartedAt       time.Time
 	FinishedAt      time.Time
 	TimeoutDuration time.Duration
@@ -26,27 +26,27 @@ type Job struct {
 }
 
 // NewJob is...
-func NewJob(jobID, comamndString string, environment []string, timeoutDuration time.Duration) *Job {
+func NewJob(jobID, CommandString string, environment []string, timeoutDuration time.Duration) *Job {
 	j := new(Job)
 	j.JobID = jobID
-	j.JobEcexutionID = jobID + "-" + uniuri.New()
-	j.ComamndString = comamndString
+	j.JobExecutionID = jobID + "-" + uniuri.New()
+	j.CommandString = CommandString
 	j.Environment = environment
-	j.SubimitedAt = time.Now()
+	j.SubmittedAt = time.Now()
 	j.TimeoutDuration = timeoutDuration
 	return j
 }
 
 // Execute is...
 func (j *Job) Execute(ctx context.Context) error {
-	j.Cmd = *exec.Command("sh", "-c", j.ComamndString)
+	j.Cmd = *exec.Command("sh", "-c", j.CommandString)
 	j.Cmd.Env = append(os.Environ())
 	j.Cmd.Env = append(j.Environment)
 	// TODO: via log driver
 	if _, err := os.Stat("logs"); os.IsNotExist(err) {
 		os.Mkdir("logs/", 0755)
 	}
-	logFilename := "logs/" + j.JobEcexutionID + ".log"
+	logFilename := "logs/" + j.JobExecutionID + ".log"
 	logFile, err := os.OpenFile(logFilename, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
 		return err

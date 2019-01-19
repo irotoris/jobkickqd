@@ -28,7 +28,7 @@ func TestPubSubLogWrite(t *testing.T) {
 	logMessages := [5]string{"test logs 1.", "test logs 2.", "test logs 3.", "test logs 4.", "test logs 5."}
 	attribute := map[string]string{
 		"jobID":          "test-job",
-		"jobEcexutionID": "test-job-execution-1",
+		"jobExecutionID": "test-job-execution-1",
 	}
 
 	for _, msg := range logMessages {

@@ -47,6 +47,7 @@ func (ld *PubSubLogDriver) Write(ctx context.Context, message string, attributes
 	for _, r := range results {
 		id, err := r.Get(ctx)
 		if err != nil {
+			fmt.Printf("err:%s", err)
 			return err
 		}
 		fmt.Printf("Published a message with a message ID: %s\n", id)
