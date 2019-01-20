@@ -11,7 +11,6 @@ import (
 
 type JobQueueExecutor interface {
 	Run()
-	Stop()
 }
 
 type PubSubJobQueue struct {
@@ -38,9 +37,9 @@ func NewPubSubJobQueueExecutor(ctx context.Context, projectID, topicName, subscr
 	return qd ,nil
 }
 
-func (qd *PubSubJobQueue)Run(ctx, cctx context.Context, ld PubSubLogDriver) error {
+func (jq *PubSubJobQueue)Run(ctx, cctx context.Context, ld PubSubMessageDriver) error {
 	var mu sync.Mutex
-	err := qd.subscription.Receive(cctx, func(ctx context.Context, m *pubsub.Message) {
+	err := jq.subscription.Receive(cctx, func(ctx context.Context, m *pubsub.Message) {
 		fmt.Println(string(m.Data), m.Attributes)
 		if m.Attributes["app"] != "jobkickqd" {
 			return
@@ -50,7 +49,7 @@ func (qd *PubSubJobQueue)Run(ctx, cctx context.Context, ld PubSubLogDriver) erro
 		defer mu.Unlock()
 		// TODO: implement execute job
 		var jm DefaultJobMessage
-		ja := make(map[string]string)
+		attributes := make(map[string]string)
 		if err := json.Unmarshal(m.Data, &jm); err != nil {
 			fmt.Println("Err:json.Unmarshal is failed.")
 			return
@@ -59,9 +58,11 @@ func (qd *PubSubJobQueue)Run(ctx, cctx context.Context, ld PubSubLogDriver) erro
 		j := NewJob(jm.JobID, jm.Command, jm.Environment, timeoutDuration)
 		if err := j.Execute(ctx); err != nil {
 			fmt.Println("Err:json.Unmarshal() is failed.")
+			return
 		}
-		if err := ld.Write(ctx, j.ExecutionLog, ja); err != nil {
+		if err := ld.Write(ctx, j.ExecutionLog, attributes); err != nil {
 			fmt.Println("Err:ld.Write() is failed.")
+			return
 		}
 
 	})

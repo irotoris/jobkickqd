@@ -18,12 +18,12 @@ func TestPubSubJobQueueSubscribe(t *testing.T) {
 
 	topicNameForLog, ok := os.LookupEnv("topicNameForLog")
 	if !ok {
-		t.Error("topicName is required.")
+		t.Error("topicNameForLog is required.")
 	}
 
 	topicNameForJobQueue, ok := os.LookupEnv("topicNameForJobQueue")
 	if !ok {
-		t.Error("topicName is required.")
+		t.Error("topicNameForJobQueue is required.")
 	}
 
 	subscriptionName, ok := os.LookupEnv("subscriptionName")
@@ -31,46 +31,52 @@ func TestPubSubJobQueueSubscribe(t *testing.T) {
 		t.Error("subscriptionName is required.")
 	}
 
-	ld, err := NewPubSubLogDriver(ctx, projectID, topicNameForLog)
+	logDriver, err := NewPubSubMessageDriver(ctx, projectID, topicNameForLog)
 	if err != nil {
 		fmt.Println("err", err)
-		t.Error("NewPubSubLogDriver is failed.")
+		t.Error("NewPubSubMessageDriver is failed.")
 	}
 
-	qd, err := NewPubSubJobQueueExecutor(ctx, projectID, topicNameForJobQueue, subscriptionName)
+	queueDriver, err := NewPubSubJobQueueExecutor(ctx, projectID, topicNameForJobQueue, subscriptionName)
 	if err != nil {
 		fmt.Println("err", err)
-		t.Error("NewPubSubJobQueue is failed.")
+		t.Error("NewPubSubJobQueueExecutor is failed.")
 	}
 
 	cctx, cancel := context.WithCancel(ctx)
 
-	qd.Run(ctx, cctx, *ld)
+	// start job queue polling
+	go queueDriver.Run(ctx, cctx, *logDriver)
 
 
-	kickq, err := NewPubSubLogDriver(ctx, projectID, topicNameForJobQueue)
+	// publish test job
+	kickq, err := NewPubSubMessageDriver(ctx, projectID, topicNameForJobQueue)
 	if err != nil {
 		fmt.Println("err", err)
-		t.Error("NewPubSubLogDriver is failed.")
+		t.Error("NewPubSubMessageDriver is failed.")
 	}
-	time.Sleep(5 * time.Second)
-	msg := "{\"job_id\":\"test-from-queue\",\"job_execution_id\":\"test-00001\",\"command\":\"echo ${ENV}\",\"Environment\":[\"ENV=dev\",\"ROLE=test\"],\"timeout\":60,\"retry\":0}"
+
+	time.Sleep(1 * time.Second)
+
+	msgs := []string{
+		"{\"job_id\":\"test-from-queue\",\"job_execution_id\":\"test-00001\",\"command\":\"sleep 1;echo \\\"env is ${ENV}\\\"\",\"Environment\":[\"ENV=dev1\",\"ROLE=test1\"],\"timeout\":60,\"retry\":0}",
+		"{\"job_id\":\"test-from-queue\",\"job_execution_id\":\"test-00002\",\"command\":\"echo \\\"env is ${ENV}\\\"\",\"Environment\":[\"ENV=dev2\",\"ROLE=test2\"],\"timeout\":60,\"retry\":0}",
+		"{\"job_id\":\"test-from-queue\",\"job_execution_id\":\"test-00003\",\"command\":\"echo \\\"env is ${ENV}\\\"\",\"Environment\":[\"ENV=dev3\",\"ROLE=test3\"],\"timeout\":60,\"retry\":0}",
+		"{\"job_id\":\"test-from-queue\",\"job_execution_id\":\"test-00004\",\"command\":\"sleep 3;echo \\\"env is ${ENV}\\\"\",\"Environment\":[\"ENV=dev4\",\"ROLE=test4\"],\"timeout\":60,\"retry\":0}",
+		"{\"job_id\":\"test-from-queue\",\"job_execution_id\":\"test-00005\",\"command\":\"sleep 300\",\"Environment\":[\"ENV=dev\",\"ROLE=test\"],\"timeout\":3,\"retry\":0}",
+	}
 	attribute := map[string]string{
 		"app": "jobkickqd",
 	}
-
-	err = kickq.Write(ctx, msg, attribute)
-	if err != nil {
-		fmt.Println("err", err)
-		t.Error("Write() is failed.")
+	for _, msg := range msgs {
+		err = kickq.Write(ctx, msg, attribute)
+		if err != nil {
+			fmt.Println("err", err)
+			t.Error("Write() is failed.")
+		}
 	}
 
-	time.Sleep(30 * time.Second)
+	time.Sleep(10 * time.Second)
 	cancel()
-
-	if err != nil {
-		fmt.Println("err", err)
-		t.Error("PubSubJobQueueSubscribe() is failed.")
-	}
 
 }

@@ -44,7 +44,7 @@ func (j *Job) Execute(ctx context.Context) error {
 	j.Cmd.Env = append(j.Environment)
 
 	logFilename := "logs/" + j.JobExecutionID + ".log"
-	logFile, err := NewFileLogDriver(logFilename)
+	logFile, err := NewFileMessageDriver(logFilename)
 	if err != nil {
 		return err
 	}
@@ -52,19 +52,17 @@ func (j *Job) Execute(ctx context.Context) error {
 	j.Cmd.Stderr = &logFile.file
 	j.Cmd.Stdout = &logFile.file
 	j.StartedAt = time.Now()
-
-	j.Cmd.Start()
 	j.JobState = "RUNNING"
 
-	// TODO: implement streaming log output. finally put end mark log.
-	// TODO: implement update job state to datastore or other KVS.
+	j.Cmd.Start()
+	// TODO: implement streaming log output and put end mark log at end.
+	// TODO: implement update job state to Datastore or other KVS.
 	// TODO: implement stop commands when daemon process stop.(Or this responsibility is queue daemon.)
 	// TODO: implement timeout job cancel
 	// TODO: implement retry in fail
 	j.Cmd.Wait()
 	j.FinishedAt = time.Now()
 
-	// TODO: implement bulk all log output
 	data, err := ioutil.ReadFile(logFilename)
 	if err != nil {
 		j.ExecutionLog = "[jobkickqd][daemon]ERROR:Cannot open a log file." + err.Error()
