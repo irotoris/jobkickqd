@@ -16,7 +16,12 @@ func TestPubSubJobQueueSubscribe(t *testing.T) {
 		t.Error("projectID is required.")
 	}
 
-	topicName, ok := os.LookupEnv("topicName")
+	topicNameForLog, ok := os.LookupEnv("topicNameForLog")
+	if !ok {
+		t.Error("topicName is required.")
+	}
+
+	topicNameForJobQueue, ok := os.LookupEnv("topicNameForJobQueue")
 	if !ok {
 		t.Error("topicName is required.")
 	}
@@ -26,7 +31,13 @@ func TestPubSubJobQueueSubscribe(t *testing.T) {
 		t.Error("subscriptionName is required.")
 	}
 
-	qd, err := NewPubSubJobQueueExecutor(ctx, projectID, topicName, subscriptionName)
+	ld, err := NewPubSubLogDriver(ctx, projectID, topicNameForLog)
+	if err != nil {
+		fmt.Println("err", err)
+		t.Error("NewPubSubLogDriver is failed.")
+	}
+
+	qd, err := NewPubSubJobQueueExecutor(ctx, projectID, topicNameForJobQueue, subscriptionName)
 	if err != nil {
 		fmt.Println("err", err)
 		t.Error("NewPubSubJobQueue is failed.")
@@ -34,11 +45,27 @@ func TestPubSubJobQueueSubscribe(t *testing.T) {
 
 	cctx, cancel := context.WithCancel(ctx)
 
-	go func(queue PubSubJobQueue){
-		qd.Run(ctx, cctx)
-	}(*qd)
+	qd.Run(ctx, cctx, *ld)
 
+
+	kickq, err := NewPubSubLogDriver(ctx, projectID, topicNameForJobQueue)
+	if err != nil {
+		fmt.Println("err", err)
+		t.Error("NewPubSubLogDriver is failed.")
+	}
 	time.Sleep(5 * time.Second)
+	msg := "{\"job_id\":\"test-from-queue\",\"job_execution_id\":\"test-00001\",\"command\":\"echo ${ENV}\",\"Environment\":[\"ENV=dev\",\"ROLE=test\"],\"timeout\":60,\"retry\":0}"
+	attribute := map[string]string{
+		"app": "jobkickqd",
+	}
+
+	err = kickq.Write(ctx, msg, attribute)
+	if err != nil {
+		fmt.Println("err", err)
+		t.Error("Write() is failed.")
+	}
+
+	time.Sleep(30 * time.Second)
 	cancel()
 
 	if err != nil {

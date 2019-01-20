@@ -2,38 +2,38 @@ package jobkickqd
 
 import (
 	"context"
+	"github.com/dchest/uniuri"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"time"
-
-	"github.com/dchest/uniuri"
 )
 
 // Job is...
 type Job struct {
-	JobID           string
-	JobExecutionID  string
-	CommandString   string
-	Environment     []string
-	JobState        string
-	ExecutionLog    string
-	SubmittedAt     time.Time
-	StartedAt       time.Time
-	FinishedAt      time.Time
-	TimeoutDuration time.Duration
-	Cmd             exec.Cmd
+	JobID          string
+	JobExecutionID string
+	CommandString  string
+	Environment    []string
+	JobState       string
+	ExecutionLog   string
+	SentAt         time.Time
+	SubmittedAt    time.Time
+	StartedAt      time.Time
+	FinishedAt     time.Time
+	Timeout        time.Duration
+	Cmd            exec.Cmd
 }
 
 // NewJob is...
-func NewJob(jobID, CommandString string, environment []string, timeoutDuration time.Duration) *Job {
+func NewJob(jobID, CommandString string, environment []string, timeout time.Duration) *Job {
 	j := new(Job)
 	j.JobID = jobID
 	j.JobExecutionID = jobID + "-" + uniuri.New()
 	j.CommandString = CommandString
 	j.Environment = environment
 	j.SubmittedAt = time.Now()
-	j.TimeoutDuration = timeoutDuration
+	j.Timeout = timeout
 	return j
 }
 
@@ -42,29 +42,27 @@ func (j *Job) Execute(ctx context.Context) error {
 	j.Cmd = *exec.Command("sh", "-c", j.CommandString)
 	j.Cmd.Env = append(os.Environ())
 	j.Cmd.Env = append(j.Environment)
-	// TODO: via log driver
-	if _, err := os.Stat("logs"); os.IsNotExist(err) {
-		os.Mkdir("logs/", 0755)
-	}
+
 	logFilename := "logs/" + j.JobExecutionID + ".log"
-	logFile, err := os.OpenFile(logFilename, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
+	logFile, err := NewFileLogDriver(logFilename)
 	if err != nil {
 		return err
 	}
-	defer logFile.Close()
-	j.Cmd.Stderr = logFile
-	j.Cmd.Stdout = logFile
+	defer logFile.Close(ctx)
+	j.Cmd.Stderr = &logFile.file
+	j.Cmd.Stdout = &logFile.file
 	j.StartedAt = time.Now()
 
 	j.Cmd.Start()
 	j.JobState = "RUNNING"
 
-	// TODO: implement streaming log output. finaly put end mark log.
+	// TODO: implement streaming log output. finally put end mark log.
 	// TODO: implement update job state to datastore or other KVS.
 	// TODO: implement stop commands when daemon process stop.(Or this responsibility is queue daemon.)
+	// TODO: implement timeout job cancel
+	// TODO: implement retry in fail
 	j.Cmd.Wait()
 	j.FinishedAt = time.Now()
-	logFile.Close()
 
 	// TODO: implement bulk all log output
 	data, err := ioutil.ReadFile(logFilename)

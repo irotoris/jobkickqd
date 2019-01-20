@@ -3,16 +3,25 @@ package jobkickqd
 import "time"
 
 type RunnerConfig struct {
-	Loglevel              string
-	Logfile               string
-	LogDriversConfig      map[string]string
-	JobQueueDriversConfig map[string]string
-	Concurency            int
+	LogLevel         string
+	Logfile          string
+	LogDriversConfig map[string]string
+	JobQueueConfig   map[string]string
+	Concurrency       int
 }
 
 type ClientConfig struct {
-	Loglevel              string
-	LogPollingInverval    time.Duration
-	LogDriversConfig      map[string]string
-	JobQueueDriversConfig map[string]string
+	LogLevel           string
+	LogPollingInterval time.Duration
+	LogDriversConfig   map[string]string
+	JobQueueConfig     map[string]string
+}
+
+type DefaultJobMessage struct {
+	JobID          string   `json:"job_id"`
+	JobExecutionID string   `json:"job_execution_id"`
+	Command        string   `json:"command"`
+	Environment    []string `json:"Environment"`
+	Timeout        int      `json:"timeout"`
+	Retry          int      `json:"retry"`
 }

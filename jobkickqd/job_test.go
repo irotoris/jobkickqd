@@ -11,8 +11,8 @@ func TestExecute(t *testing.T) {
 	jobID := "testJob"
 	cmdString := "echo \"command success test, env is ${ENV}.\""
 	envs := []string{"ENV=test"}
-	timeoutDuration := 60 * time.Second
-	j := NewJob(jobID, cmdString, envs, timeoutDuration)
+	timeout := 60 * time.Second
+	j := NewJob(jobID, cmdString, envs, timeout)
 
 	err := j.Execute(ctx)
 	if err != nil {
@@ -26,8 +26,8 @@ func TestKill(t *testing.T) {
 	jobID := "testJob"
 	cmdString := "sleep 1"
 	var envs []string
-	timeoutDuration := 60 * time.Second
-	j := NewJob(jobID, cmdString, envs, timeoutDuration)
+	timeout := 60 * time.Second
+	j := NewJob(jobID, cmdString, envs, timeout)
 
 	go j.Execute(ctx)
 

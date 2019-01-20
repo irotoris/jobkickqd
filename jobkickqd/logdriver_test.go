@@ -14,12 +14,12 @@ func TestPubSubLogWrite(t *testing.T) {
 		t.Error("projectID is required.")
 	}
 
-	topicName, ok := os.LookupEnv("topicName")
+	topicNameForLog, ok := os.LookupEnv("topicNameForLog")
 	if !ok {
 		t.Error("topicName is required.")
 	}
 
-	ld, err := NewPubSubLogDriver(ctx, projectID, topicName)
+	ld, err := NewPubSubLogDriver(ctx, projectID, topicNameForLog)
 	if err != nil {
 		fmt.Println("err", err)
 		t.Error("NewPubSubLogDriver is failed.")
