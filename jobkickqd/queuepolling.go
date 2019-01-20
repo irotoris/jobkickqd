@@ -15,16 +15,14 @@ type JobQueueExecutor interface {
 
 type PubSubJobQueue struct {
 	projectID string
-	topicName string
 	subscriptionName string
 	pubsubClient pubsub.Client
 	subscription pubsub.Subscription
 }
 
-func NewPubSubJobQueueExecutor(ctx context.Context, projectID, topicName, subscriptionName string) (*PubSubJobQueue, error) {
+func NewPubSubJobQueueExecutor(ctx context.Context, projectID, subscriptionName string) (*PubSubJobQueue, error) {
 	qd := new(PubSubJobQueue)
 	qd.projectID = projectID
-	qd.topicName = topicName
 	qd.subscriptionName = subscriptionName
 	pubsubClient, err := pubsub.NewClient(ctx, projectID)
 	if err != nil {

@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func TestPubSubJobQueueSubscribe(t *testing.T) {
+func TestPubSubJobQueue_Run(t *testing.T) {
 
 	ctx := context.Background()
 	projectID, ok := os.LookupEnv("projectID")
@@ -37,7 +37,7 @@ func TestPubSubJobQueueSubscribe(t *testing.T) {
 		t.Error("NewPubSubMessageDriver is failed.")
 	}
 
-	queueDriver, err := NewPubSubJobQueueExecutor(ctx, projectID, topicNameForJobQueue, subscriptionName)
+	queueDriver, err := NewPubSubJobQueueExecutor(ctx, projectID, subscriptionName)
 	if err != nil {
 		fmt.Println("err", err)
 		t.Error("NewPubSubJobQueueExecutor is failed.")

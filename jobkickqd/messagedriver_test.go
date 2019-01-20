@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestPubSubLogWrite(t *testing.T) {
+func TestPubSubMessageDriver_Write(t *testing.T) {
 	ctx := context.Background()
 	projectID, ok := os.LookupEnv("projectID")
 	if !ok {
@@ -40,7 +40,7 @@ func TestPubSubLogWrite(t *testing.T) {
 	}
 }
 
-func TestFileLogWrite(t *testing.T) {
+func TestFileMessageDriver_Write(t *testing.T) {
 	ctx := context.Background()
 	logFilePath := "logs/test-job.log"
 	ld, err := NewFileMessageDriver(logFilePath)
