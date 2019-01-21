@@ -2,42 +2,36 @@ package main
 
 import (
 	"context"
-	"fmt"
-	"strconv"
-	"time"
-
+	"flag"
 	"github.com/irotoris/jobkickqd/jobkickqd"
+	"github.com/sirupsen/logrus"
 )
 
+var (
+	project      = flag.String("project", "", "Google Cloud Platform project name")
+	topic        = flag.String("topic", "", "PubSub topic name for a log stream of jobs")
+	subscription = flag.String("subscription", "", "PubSub subscription name for a job queue.")
+)
+
+func init() {
+	flag.Parse()
+}
+
 func main() {
-	i := 0
-	for {
-		fmt.Println("Start a command...")
-		jobID := "sampleJob" + strconv.Itoa(i)
-		//cmdString := "for i in {1..3}; do sleep 1; echo " + jobID + ":  `date \"+%Y-%m-%d %H:%M:%S\"`; done"
-		cmdString := "echo " + jobID + ":  `date \"+%Y-%m-%d %H:%M:%S\"`"
-		envs := []string{"ENV=dev", "EDITOR=vim"}
-		timeoutDuration := 60 * time.Second
-		j := jobkickqd.NewJob(jobID, cmdString, envs, timeoutDuration)
-		ctx := context.Background()
-
-		errChan := make(chan error, 1)
-		go func() {
-			err := j.Execute(ctx)
-			fmt.Println("Log: " + j.ExecutionLog)
-			errChan <- err
-		}()
-
-		err := <-errChan
-		if err != nil {
-			fmt.Print("err:", err)
-		}
-		fmt.Println("Finished a command.")
-
-		time.Sleep(1 * time.Second)
-		i++
-		if i > 0 {
-			break
-		}
+	ctx := context.Background()
+	l, err := jobkickqd.NewPubSubMessageDriver(ctx, *project, *topic)
+	if err != nil {
+		logrus.Errorf("Failed to create a pubsub log driver.: %s", err)
 	}
+
+	q, err := jobkickqd.NewPubSubJobQueueExecutor(ctx, *project, *subscription)
+	if err != nil {
+		logrus.Errorf("Failed to create a pubsub job queue executor.: %s", err)
+	}
+
+	cctx, _ := context.WithCancel(ctx)
+
+	// start job queue polling
+	q.Run(ctx, cctx, *l)
+
 }
