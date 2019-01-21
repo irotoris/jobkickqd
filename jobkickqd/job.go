@@ -3,6 +3,7 @@ package jobkickqd
 import (
 	"context"
 	"github.com/dchest/uniuri"
+	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -54,6 +55,8 @@ func (j *Job) Execute(ctx context.Context) error {
 	j.StartedAt = time.Now()
 	j.JobState = "RUNNING"
 
+	logrus.Infof("[%s][%s]START a command: %s", j.JobID, j.JobExecutionID, j.CommandString)
+
 	j.Cmd.Start()
 	// TODO: implement streaming log output and put end mark log at end.
 	// TODO: implement update job state to Datastore or other KVS.
@@ -62,6 +65,9 @@ func (j *Job) Execute(ctx context.Context) error {
 	// TODO: implement retry in fail
 	j.Cmd.Wait()
 	j.FinishedAt = time.Now()
+	j.changeJobStateAtEnd(ctx)
+
+	logrus.Infof("[%s][%s]%s to run a command.", j.JobID, j.JobExecutionID, j.JobState)
 
 	data, err := ioutil.ReadFile(logFilename)
 	if err != nil {
@@ -70,7 +76,6 @@ func (j *Job) Execute(ctx context.Context) error {
 		j.ExecutionLog = string(data)
 	}
 	j.ExecutionLog = string(data)
-	j.changeJobStateAtEnd(ctx)
 	return nil
 }
 

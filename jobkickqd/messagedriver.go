@@ -2,7 +2,7 @@ package jobkickqd
 
 import (
 	"context"
-	"fmt"
+	"github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"
 
@@ -47,10 +47,10 @@ func (ld *PubSubMessageDriver) Write(ctx context.Context, message string, attrib
 	for _, r := range results {
 		id, err := r.Get(ctx)
 		if err != nil {
-			fmt.Printf("err:%s", err)
+			logrus.Errorf("Failed to publish a log message: %s", err)
 			return err
 		}
-		fmt.Printf("Published a message with a message ID: %s\n", id)
+		logrus.Infof("Published a message with a message ID: %s", id)
 	}
 	return nil
 }
