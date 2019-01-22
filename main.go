@@ -8,6 +8,8 @@ import (
 )
 
 var (
+	Version  string
+	Revision string
 	project      = flag.String("project", "", "Google Cloud Platform project name")
 	topic        = flag.String("topic", "", "PubSub topic name for a log stream of jobs")
 	subscription = flag.String("subscription", "", "PubSub subscription name for a job queue.")
