@@ -163,3 +163,6 @@ tags
 # tmp
 tmp/*
 logs/*
+
+# IntelliJ
+.idea/*

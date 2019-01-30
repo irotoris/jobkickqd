@@ -9,6 +9,7 @@ CURRENT  := $(shell pwd)
 deps:
 	go get github.com/golang/lint/golint
 	go get github.com/Songmu/make2help/cmd/make2help
+	go get ./...
 
 .PHONY: build
 ## Build binaries
