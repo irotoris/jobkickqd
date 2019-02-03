@@ -2,12 +2,12 @@ package jobkickqd
 
 import (
 	"context"
-	"github.com/dchest/uniuri"
-	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 // Job is...
@@ -27,10 +27,10 @@ type Job struct {
 }
 
 // NewJob is...
-func NewJob(jobID, CommandString string, environment []string, timeout time.Duration) *Job {
+func NewJob(jobID, jobExecutionID, CommandString string, environment []string, timeout time.Duration) *Job {
 	j := new(Job)
 	j.JobID = jobID
-	j.JobExecutionID = jobID + "-" + uniuri.New()
+	j.JobExecutionID = jobExecutionID
 	j.CommandString = CommandString
 	j.Environment = environment
 	j.SubmittedAt = time.Now()

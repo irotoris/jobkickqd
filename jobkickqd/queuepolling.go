@@ -1,12 +1,13 @@
 package jobkickqd
 
 import (
-	"cloud.google.com/go/pubsub"
 	"context"
 	"encoding/json"
-	"github.com/sirupsen/logrus"
 	"sync"
 	"time"
+
+	"cloud.google.com/go/pubsub"
+	"github.com/sirupsen/logrus"
 )
 
 type JobQueueExecutor interface {
@@ -14,10 +15,10 @@ type JobQueueExecutor interface {
 }
 
 type PubSubJobQueue struct {
-	projectID string
+	projectID        string
 	subscriptionName string
-	pubsubClient pubsub.Client
-	subscription pubsub.Subscription
+	pubsubClient     pubsub.Client
+	subscription     pubsub.Subscription
 }
 
 func NewPubSubJobQueueExecutor(ctx context.Context, projectID, subscriptionName string) (*PubSubJobQueue, error) {
@@ -32,14 +33,14 @@ func NewPubSubJobQueueExecutor(ctx context.Context, projectID, subscriptionName 
 	sub := pubsubClient.Subscription(subscriptionName)
 	qd.subscription = *sub
 
-	return qd ,nil
+	return qd, nil
 }
 
-func (jq *PubSubJobQueue)Run(ctx, cctx context.Context, ld PubSubMessageDriver) error {
+func (jq *PubSubJobQueue) Run(ctx, cctx context.Context, ld PubSubMessageDriver) error {
 	logrus.Infof("Start job queue polling and command executor. project:%s, job queue subscription:%s, command log topic:%s", jq.projectID, jq.subscriptionName, ld.topicName)
 	var mu sync.Mutex
 	err := jq.subscription.Receive(cctx, func(ctx context.Context, m *pubsub.Message) {
-		logrus.Infof("Received a job message: %s: %s", string(m.Data), m.Attributes)
+		logrus.Infof("Received a job message:%s :%s :%s", m.ID, string(m.Data), m.Attributes)
 		if m.Attributes["app"] != "jobkickqd" {
 			return
 		}
@@ -56,7 +57,8 @@ func (jq *PubSubJobQueue)Run(ctx, cctx context.Context, ld PubSubMessageDriver) 
 		timeoutDuration := time.Duration(jm.Timeout*100) * time.Second
 
 		// TODO: to async
-		j := NewJob(jm.JobID, jm.Command, jm.Environment, timeoutDuration)
+		jobExecutionID := jm.JobID + m.ID
+		j := NewJob(jm.JobID, jobExecutionID, jm.Command, jm.Environment, timeoutDuration)
 		if err := j.Execute(ctx); err != nil {
 			logrus.Errorf("Failed to create new job object.: %s", err)
 			return

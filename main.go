@@ -1,8 +1,7 @@
 package main
 
 import (
-	//"github.com/irotoris/jobkickqd/cmd"
-	"./cmd"
+	"github.com/irotoris/jobkickqd/cmd"
 )
 
 var (
