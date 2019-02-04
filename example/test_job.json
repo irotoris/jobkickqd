@@ -1,0 +1,10 @@
+{
+  "job_id": "testjob",
+  "command": "env",
+  "environment": [
+    "env=dev",
+    "role=test"
+  ],
+  "timeout": 60,
+  "retry": 0
+}
