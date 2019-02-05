@@ -7,10 +7,16 @@ import (
 	"github.com/spf13/cobra"
 	"io/ioutil"
 	"os"
+	"time"
 )
 
 var jobTopicName string
 var jobConfigFile string
+var jobID string
+var command string
+var environmentString string
+var retry int
+var timeout time.Duration
 
 // submitCmd represents the submit command
 var submitCmd = &cobra.Command{
@@ -48,4 +54,9 @@ func init() {
 	submitCmd.PersistentFlags().StringVar(&projectID, "projectID", "", "GCP project name")
 	submitCmd.PersistentFlags().StringVar(&jobTopicName, "jobTopicName", "", "Colud PubSub topic name")
 	submitCmd.PersistentFlags().StringVar(&jobConfigFile, "jobConfigFile", "", "Job config filename")
+	submitCmd.PersistentFlags().StringVar(&jobID, "jobID", "", "Job ID")
+	submitCmd.PersistentFlags().StringVar(&command, "command", "", "command")
+	submitCmd.PersistentFlags().StringVar(&environmentString, "environment", "", "environment")
+	submitCmd.PersistentFlags().IntVar(&retry, "retry", 0, "retry count of command")
+	submitCmd.PersistentFlags().IntVar(&timeout, "timeout", 0, "timeout of command")
 }
