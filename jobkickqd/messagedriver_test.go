@@ -32,7 +32,7 @@ func TestPubSubMessageDriver_Write(t *testing.T) {
 	}
 
 	for _, msg := range logMessages {
-		err = ld.Write(ctx, msg, attribute)
+		_, err = ld.Write(ctx, msg, attribute)
 		if err != nil {
 			fmt.Println("err", err)
 			t.Error("NewPubSubLogDriver is failed.")

@@ -49,7 +49,6 @@ func (jq *PubSubJobQueue) Run(ctx, cctx context.Context, ld PubSubMessageDriver)
 		mu.Lock()
 		defer mu.Unlock()
 		var jm DefaultJobMessage
-		attributes := make(map[string]string)
 		if err := json.Unmarshal(m.Data, &jm); err != nil {
 			logrus.Errorf("json.Unmarshal() failed.: %s", err)
 			return
@@ -58,12 +57,13 @@ func (jq *PubSubJobQueue) Run(ctx, cctx context.Context, ld PubSubMessageDriver)
 
 		// TODO: to async
 		jobExecutionID := jm.JobID + m.ID
+		attributes := map[string]string{"app": "jobkickqd", "job_execution_id": jobExecutionID}
 		j := NewJob(jm.JobID, jobExecutionID, jm.Command, jm.Environment, timeoutDuration)
 		if err := j.Execute(ctx); err != nil {
 			logrus.Errorf("Failed to create new job object.: %s", err)
 			return
 		}
-		if err := ld.Write(ctx, j.ExecutionLog, attributes); err != nil {
+		if _, err := ld.Write(ctx, j.ExecutionLog, attributes); err != nil {
 			logrus.Errorf("Failed to write log to a log driver.: %s", err)
 			return
 		}

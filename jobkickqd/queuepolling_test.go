@@ -48,7 +48,6 @@ func TestPubSubJobQueue_Run(t *testing.T) {
 	// start job queue polling
 	go queueDriver.Run(ctx, cctx, *logDriver)
 
-
 	// publish test job
 	kickq, err := NewPubSubMessageDriver(ctx, projectID, topicNameForJobQueue)
 	if err != nil {
@@ -69,7 +68,7 @@ func TestPubSubJobQueue_Run(t *testing.T) {
 		"app": "jobkickqd",
 	}
 	for _, msg := range msgs {
-		err = kickq.Write(ctx, msg, attribute)
+		_, err = kickq.Write(ctx, msg, attribute)
 		if err != nil {
 			fmt.Println("err", err)
 			t.Error("Write() is failed.")

@@ -4,12 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/irotoris/jobkickqd/jobkickqd"
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
 	"io/ioutil"
 	"os"
 	"strings"
+	"sync"
+	"time"
+
+	"cloud.google.com/go/pubsub"
+	"github.com/irotoris/jobkickqd/jobkickqd"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 )
 
 var jobTopicName string
@@ -33,6 +37,25 @@ var submitCmd = &cobra.Command{
 				logrus.Errorf("%s:Cannot open jobConfigFile:%s", err, jobConfigFile)
 				os.Exit(1)
 			}
+			var jm jobkickqd.DefaultJobMessage
+			if err := json.Unmarshal(data, &jm); err != nil {
+				logrus.Errorf("json.Unmarshal() failed.: %s", err)
+				os.Exit(1)
+			}
+			validParamFlag := true
+			if jm.JobID == "" {
+				logrus.Errorf("jobID is required in --jobConfigFile.")
+				validParamFlag = false
+			}
+			if jm.Command == "" {
+				logrus.Errorf("command is required in --jobConfigFile.")
+				validParamFlag = false
+			}
+			if !validParamFlag {
+				os.Exit(1)
+			}
+			jobID = jm.JobID
+			command = jm.Command
 			d = data
 		} else {
 			validParamFlag := true
@@ -51,17 +74,35 @@ var submitCmd = &cobra.Command{
 			if environmentString != "" {
 				envList = strings.Split(environmentString, ",")
 			}
-			jobMessage := jobkickqd.DefaultJobMessage{JobID:jobID,Command:command, Environment:envList, Timeout:timeoutInt, Retry:retry}
+			jobMessage := jobkickqd.DefaultJobMessage{JobID: jobID, Command: command, Environment: envList, Timeout: timeoutInt, Retry: retry}
 			data, err := json.Marshal(jobMessage)
 			if err != nil {
-				logrus.Errorf("JSON Marshal error in parse parameters:", err)
+				logrus.Errorf("JSON Marshal error in parse parameters:%s", err)
 				os.Exit(1)
 			}
 			d = data
 		}
 
-		// publish a job
 		ctx := context.Background()
+
+		// Initialize to subscribe log messages
+		pubsubClient, err := pubsub.NewClient(ctx, projectID)
+		if err != nil {
+			logrus.Errorf("%s", err)
+			os.Exit(1)
+		}
+		topic := pubsubClient.Topic(logTopicName)
+		sub, err := pubsubClient.CreateSubscription(ctx, jobID, pubsub.SubscriptionConfig{
+			Topic:       topic,
+			AckDeadline: 10 * time.Second,
+		})
+		defer sub.Delete(ctx)
+		if err != nil {
+			logrus.Errorf("%s", err)
+			os.Exit(1)
+		}
+
+		// Publish a job
 		kickq, err := jobkickqd.NewPubSubMessageDriver(ctx, projectID, jobTopicName)
 		if err != nil {
 			logrus.Errorf("%s", err)
@@ -71,8 +112,27 @@ var submitCmd = &cobra.Command{
 		attribute := map[string]string{
 			"app": "jobkickqd",
 		}
-		fmt.Printf(string(d))
-		err = kickq.Write(ctx, string(d), attribute)
+
+		id, err := kickq.Write(ctx, string(d), attribute)
+		if err != nil {
+			logrus.Errorf("%s", err)
+			os.Exit(1)
+		}
+		jobExecutionID := jobID + id
+
+		// Start subscribe log messages
+		cctx, cancel := context.WithCancel(ctx)
+		var mu sync.Mutex
+		err = sub.Receive(cctx, func(ctx context.Context, m *pubsub.Message) {
+			if m.Attributes["job_execution_id"] != jobExecutionID {
+				return
+			}
+			m.Ack()
+			fmt.Println(string(m.Data))
+			mu.Lock()
+			defer mu.Unlock()
+			cancel()
+		})
 		if err != nil {
 			logrus.Errorf("%s", err)
 			os.Exit(1)
@@ -83,7 +143,8 @@ var submitCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(submitCmd)
 	submitCmd.PersistentFlags().StringVar(&projectID, "projectID", "", "GCP project name")
-	submitCmd.PersistentFlags().StringVar(&jobTopicName, "jobTopicName", "", "Colud PubSub topic name")
+	submitCmd.PersistentFlags().StringVar(&jobTopicName, "jobTopicName", "", "Colud PubSub topic name for job queue")
+	submitCmd.PersistentFlags().StringVar(&logTopicName, "logTopicName", "", "Colud PubSub topic name for job logs")
 	submitCmd.PersistentFlags().StringVar(&jobConfigFile, "jobConfigFile", "", "Job config filename")
 	submitCmd.PersistentFlags().StringVar(&jobID, "jobID", "", "Job ID")
 	submitCmd.PersistentFlags().StringVar(&command, "command", "", "command")

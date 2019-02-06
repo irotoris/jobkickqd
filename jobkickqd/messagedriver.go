@@ -2,9 +2,10 @@ package jobkickqd
 
 import (
 	"context"
-	"github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"
+
+	"github.com/sirupsen/logrus"
 
 	"cloud.google.com/go/pubsub"
 )
@@ -21,7 +22,7 @@ type PubSubMessageDriver struct {
 	client    pubsub.Client
 }
 
-// PubSubMessageDriver is ...
+// NewPubSubMessageDriver is ...
 func NewPubSubMessageDriver(ctx context.Context, projectID, topicName string) (*PubSubMessageDriver, error) {
 	ld := new(PubSubMessageDriver)
 	ld.projectID = projectID
@@ -34,25 +35,22 @@ func NewPubSubMessageDriver(ctx context.Context, projectID, topicName string) (*
 	return ld, nil
 }
 
-func (ld *PubSubMessageDriver) Write(ctx context.Context, message string, attributes map[string]string) error {
+func (ld *PubSubMessageDriver) Write(ctx context.Context, message string, attributes map[string]string) (string, error) {
 	topic := ld.client.Topic(ld.topicName)
 	defer topic.Stop()
-	var results []*pubsub.PublishResult
 	r := topic.Publish(ctx, &pubsub.Message{
 		Data:       []byte(message),
 		Attributes: attributes,
 	})
-	results = append(results, r)
 
-	for _, r := range results {
-		id, err := r.Get(ctx)
-		if err != nil {
-			logrus.Errorf("Failed to publish a log message: %s", err)
-			return err
-		}
-		logrus.Infof("Published a message with a message ID: %s", id)
+	id, err := r.Get(ctx)
+	if err != nil {
+		logrus.Errorf("Failed to publish a message: %s", err)
+		return "", err
 	}
-	return nil
+	logrus.Infof("Published a message with a message ID: %s", id)
+
+	return id, nil
 }
 
 // FileMessageDriver is ...
