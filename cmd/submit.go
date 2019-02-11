@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -127,7 +126,7 @@ var submitCmd = &cobra.Command{
 				return
 			}
 			m.Ack()
-			fmt.Println(string(m.Data))
+			logrus.Infof(string(m.Data))
 			mu.Lock()
 			defer mu.Unlock()
 			cancel()
