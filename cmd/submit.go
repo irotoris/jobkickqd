@@ -21,7 +21,6 @@ var jobConfigFile string
 var jobID string
 var command string
 var environmentString string
-var retry int
 var timeoutInt int
 
 // submitCmd represents the submit command
@@ -74,7 +73,7 @@ var submitCmd = &cobra.Command{
 			if environmentString != "" {
 				envList = strings.Split(environmentString, ",")
 			}
-			jobMessage := jobkickqd.DefaultJobMessage{JobID: jobID, Command: command, Environment: envList, Timeout: timeoutInt, Retry: retry}
+			jobMessage := jobkickqd.DefaultJobMessage{JobID: jobID, Command: command, Environment: envList, Timeout: timeoutInt}
 			data, err := json.Marshal(jobMessage)
 			if err != nil {
 				logrus.Errorf("JSON Marshal error in parse parameters:%s", err)
@@ -149,6 +148,5 @@ func init() {
 	submitCmd.PersistentFlags().StringVar(&jobID, "jobID", "", "Job ID")
 	submitCmd.PersistentFlags().StringVar(&command, "command", "", "command")
 	submitCmd.PersistentFlags().StringVar(&environmentString, "environment", "", "environment")
-	submitCmd.PersistentFlags().IntVar(&retry, "retry", 0, "retry count of command")
 	submitCmd.PersistentFlags().IntVar(&timeoutInt, "timeout", 0, "timeout of command")
 }

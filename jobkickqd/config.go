@@ -23,5 +23,4 @@ type DefaultJobMessage struct {
 	Command        string   `json:"command"`
 	Environment    []string `json:"environment"`
 	Timeout        int      `json:"timeout"`
-	Retry          int      `json:"retry"`
 }
