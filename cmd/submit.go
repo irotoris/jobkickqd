@@ -21,6 +21,7 @@ var jobID string
 var command string
 var environmentString string
 var timeoutInt int
+var app string
 
 // submitCmd represents the submit command
 var submitCmd = &cobra.Command{
@@ -81,6 +82,11 @@ var submitCmd = &cobra.Command{
 			d = data
 		}
 
+		if app == "" {
+			logrus.Errorf("--app is required.")
+			os.Exit(1)
+		}
+
 		ctx := context.Background()
 
 		// Initialize to subscribe log messages
@@ -108,7 +114,7 @@ var submitCmd = &cobra.Command{
 		}
 
 		attribute := map[string]string{
-			"app": "jobkickqd",
+			"app": app,
 		}
 
 		id, err := kickq.Write(ctx, string(d), attribute)
@@ -148,4 +154,5 @@ func init() {
 	submitCmd.PersistentFlags().StringVar(&command, "command", "", "command")
 	submitCmd.PersistentFlags().StringVar(&environmentString, "environment", "", "environment")
 	submitCmd.PersistentFlags().IntVar(&timeoutInt, "timeout", 0, "timeout of command")
+	submitCmd.PersistentFlags().StringVar(&app, "app", "", "key of application")
 }

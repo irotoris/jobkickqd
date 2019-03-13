@@ -37,7 +37,7 @@ func TestPubSubJobQueue_Run(t *testing.T) {
 		t.Error("NewPubSubMessageDriver is failed.")
 	}
 
-	queueDriver, err := NewPubSubJobQueueExecutor(ctx, projectID, subscriptionName)
+	queueDriver, err := NewPubSubJobQueueExecutor(ctx, projectID, subscriptionName, "test-app")
 	if err != nil {
 		fmt.Println("err", err)
 		t.Error("NewPubSubJobQueueExecutor is failed.")
@@ -65,7 +65,7 @@ func TestPubSubJobQueue_Run(t *testing.T) {
 		"{\"job_id\":\"test-from-queue\",\"job_execution_id\":\"test-00005\",\"command\":\"sleep 300\",\"Environment\":[\"ENV=dev\",\"ROLE=test\"],\"timeout\":3,\"retry\":0}",
 	}
 	attribute := map[string]string{
-		"app": "jobkickqd",
+		"app": "test-app",
 	}
 	for _, msg := range msgs {
 		_, err = kickq.Write(ctx, msg, attribute)

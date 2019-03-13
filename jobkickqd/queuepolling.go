@@ -19,9 +19,10 @@ type PubSubJobQueue struct {
 	subscriptionName string
 	pubsubClient     pubsub.Client
 	subscription     pubsub.Subscription
+	daemonApp        string
 }
 
-func NewPubSubJobQueueExecutor(ctx context.Context, projectID, subscriptionName string) (*PubSubJobQueue, error) {
+func NewPubSubJobQueueExecutor(ctx context.Context, projectID, subscriptionName, daemonApp string) (*PubSubJobQueue, error) {
 	qd := new(PubSubJobQueue)
 	qd.projectID = projectID
 	qd.subscriptionName = subscriptionName
@@ -32,6 +33,7 @@ func NewPubSubJobQueueExecutor(ctx context.Context, projectID, subscriptionName 
 	qd.pubsubClient = *pubsubClient
 	sub := pubsubClient.Subscription(subscriptionName)
 	qd.subscription = *sub
+	qd.daemonApp = daemonApp
 
 	return qd, nil
 }
@@ -41,13 +43,16 @@ func (jq *PubSubJobQueue) Run(ctx, cctx context.Context, ld PubSubMessageDriver)
 	var mu sync.Mutex
 	err := jq.subscription.Receive(cctx, func(ctx context.Context, m *pubsub.Message) {
 		logrus.Infof("Received a job message:%s :%s :%s", m.ID, string(m.Data), m.Attributes)
-		if m.Attributes["app"] != "jobkickqd" {
+		if m.Attributes["app"] != jq.daemonApp {
 			return
 		}
 		// TODO: check and stop duplicate execution
 		m.Ack()
 		mu.Lock()
 		defer mu.Unlock()
+		if m.Attributes["app"] != jq.daemonApp {
+			return
+		}
 		var jm DefaultJobMessage
 		if err := json.Unmarshal(m.Data, &jm); err != nil {
 			logrus.Errorf("json.Unmarshal() failed.: %s", err)
@@ -57,7 +62,7 @@ func (jq *PubSubJobQueue) Run(ctx, cctx context.Context, ld PubSubMessageDriver)
 
 		// TODO: to async
 		jobExecutionID := jm.JobID + m.ID
-		attributes := map[string]string{"app": "jobkickqd", "job_execution_id": jobExecutionID}
+		attributes := map[string]string{"app": jq.daemonApp, "job_execution_id": jobExecutionID}
 		j := NewJob(jm.JobID, jobExecutionID, jm.Command, jm.Environment, timeoutDuration)
 		if err := j.Execute(ctx); err != nil {
 			logrus.Errorf("Failed to create new job object.: %s", err)
