@@ -2,10 +2,10 @@ package cmd
 
 import (
 	"context"
-
 	"github.com/irotoris/jobkickqd/jobkickqd"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"os"
 )
 
 var jobSubscriptionName string
@@ -38,10 +38,12 @@ var daemonCmd = &cobra.Command{
 }
 
 func init() {
+	logrus.SetOutput(os.Stdout)
+	logrus.SetLevel(logrus.InfoLevel)
 	rootCmd.AddCommand(daemonCmd)
 	daemonCmd.PersistentFlags().StringVar(&projectID, "projectID", "", "GCP project name")
 	daemonCmd.PersistentFlags().StringVar(&jobSubscriptionName, "jobSubscriptionName", "", "Colud PubSub subscription name for job queue")
 	daemonCmd.PersistentFlags().StringVar(&logTopicName, "logTopicName", "", "Colud PubSub topic name for log stream")
-	submitCmd.PersistentFlags().StringVar(&daemonApp, "daemonApp", "", "key of application of daemon.")
+	daemonCmd.PersistentFlags().StringVar(&daemonApp, "daemonApp", "", "key of application of daemon.")
 
 }

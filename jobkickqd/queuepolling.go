@@ -3,6 +3,7 @@ package jobkickqd
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"sync"
 	"time"
 
@@ -58,16 +59,18 @@ func (jq *PubSubJobQueue) Run(ctx, cctx context.Context, ld PubSubMessageDriver)
 			logrus.Errorf("json.Unmarshal() failed.: %s", err)
 			return
 		}
-		timeoutDuration := time.Duration(jm.Timeout*100) * time.Second
+		timeoutDuration := time.Duration(jm.Timeout*1) * time.Second
 
 		// TODO: to async
 		jobExecutionID := jm.JobID + m.ID
-		attributes := map[string]string{"app": jq.daemonApp, "job_execution_id": jobExecutionID}
+
 		j := NewJob(jm.JobID, jobExecutionID, jm.Command, jm.Environment, timeoutDuration)
 		if err := j.Execute(ctx); err != nil {
 			logrus.Errorf("Failed to create new job object.: %s", err)
 			return
 		}
+		attributes := map[string]string{"app": jq.daemonApp, "job_execution_id": jobExecutionID, "job_exit_code": fmt.Sprintf("%d",j.JobExitCode)}
+
 		if _, err := ld.Write(ctx, j.ExecutionLog, attributes); err != nil {
 			logrus.Errorf("Failed to write log to a log driver.: %s", err)
 			return

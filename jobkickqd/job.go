@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"syscall"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -16,7 +17,7 @@ type Job struct {
 	JobExecutionID string
 	CommandString  string
 	Environment    []string
-	JobState       string
+	JobExitCode    int
 	ExecutionLog   string
 	SentAt         time.Time
 	SubmittedAt    time.Time
@@ -53,25 +54,35 @@ func (j *Job) Execute(ctx context.Context) error {
 	j.Cmd.Stderr = &logFile.file
 	j.Cmd.Stdout = &logFile.file
 	j.StartedAt = time.Now()
-	j.JobState = "RUNNING"
 
-	logrus.Infof("[%s][%s]START a command: %s", j.JobID, j.JobExecutionID, j.CommandString)
 
 	j.Cmd.Start()
-	// TODO: implement streaming log output and put end mark log at end.
-	// TODO: implement update job state to Datastore or other KVS.
-	// TODO: implement stop commands when daemon process stop.(Or this responsibility is queue daemon.)
-	// TODO: implement timeout job cancel
-	// TODO: implement retry in fail
-	j.Cmd.Wait()
-	j.FinishedAt = time.Now()
-	j.changeJobStateAtEnd(ctx)
 
-	logrus.Infof("[%s][%s]%s to run a command.", j.JobID, j.JobExecutionID, j.JobState)
+	// kill command when timeout
+	var timer *time.Timer
+	timer = time.AfterFunc(j.Timeout, func() {
+		timer.Stop()
+		j.Kill(ctx)
+	})
+	if err := j.Cmd.Wait(); err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			if status, ok := exitErr.Sys().(syscall.WaitStatus); ok {
+				logrus.Errorf("Exit Status: %d", status.ExitStatus())
+				j.JobExitCode = status.ExitStatus()
+			}
+		} else {
+			logrus.Error("cmd.Wait: %v", err)
+			j.JobExitCode = 127
+		}
+	} else {
+		j.JobExitCode = 0
+	}
+
+	j.FinishedAt = time.Now()
 
 	data, err := ioutil.ReadFile(logFilename)
 	if err != nil {
-		j.ExecutionLog = "[jobkickqd][daemon]ERROR:Cannot open a log file." + err.Error()
+		j.ExecutionLog = "ERROR:Cannot open a log file." + err.Error()
 	} else {
 		j.ExecutionLog = string(data)
 	}
@@ -86,14 +97,4 @@ func (j *Job) Kill(ctx context.Context) error {
 		return err
 	}
 	return nil
-}
-
-// changeJobStateAtEnd is...
-func (j *Job) changeJobStateAtEnd(ctx context.Context) {
-	state := j.Cmd.ProcessState
-	if state.Exited() && state.Success() {
-		j.JobState = "SUCCEEDED"
-	} else if state.Exited() && !state.Success() {
-		j.JobState = "FAILED"
-	}
 }
