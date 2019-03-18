@@ -66,7 +66,7 @@ func (j *Job) Execute(ctx context.Context) error {
 				j.JobExitCode = status.ExitStatus()
 			}
 		} else {
-			logrus.Error("cmd.Wait: %v", err)
+			logrus.Errorf("cmd.Wait: %v", err)
 			j.JobExitCode = 127
 		}
 	} else {
