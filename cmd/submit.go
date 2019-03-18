@@ -79,6 +79,7 @@ func submit(args []string) (int, error) {
 		}
 		jobID = jm.JobID
 		command = jm.Command
+		timeoutInt = jm.Timeout
 		d = data
 	} else {
 		validParamFlag := true
@@ -124,11 +125,11 @@ func submit(args []string) (int, error) {
 		Topic:       topic,
 		AckDeadline: 10 * time.Second,
 	})
-	defer sub.Delete(ctx)
 	if err != nil {
-		logrus.Errorf("%s", err)
-		return 1, err
+		logrus.Warnf("%s", err)
+		sub = pubsubClient.Subscription(jobID)
 	}
+	defer sub.Delete(ctx)
 
 	// Publish a job
 	kickq, err := jobkickqd.NewPubSubMessageDriver(ctx, projectID, jobTopicName)
@@ -149,10 +150,12 @@ func submit(args []string) (int, error) {
 	jobExecutionID := jobID + id
 
 	// Start subscribe log messages
-	cctx, cancel := context.WithCancel(ctx)
+
+	// add interval 5 seconds for timeout
+	cctx, cancel := context.WithTimeout(ctx, time.Duration((timeoutInt+5)*1) * time.Second)
 	var jobExitCodeString string
 	var mu sync.Mutex
-	err = sub.Receive(cctx, func(ctx context.Context, m *pubsub.Message) {
+	sub.Receive(cctx, func(ctx context.Context, m *pubsub.Message) {
 		if m.Attributes["job_execution_id"] != jobExecutionID {
 			return
 		}
@@ -160,19 +163,18 @@ func submit(args []string) (int, error) {
 		logrus.Infof("Job stdout/stderr:\n%s", string(m.Data))
 		mu.Lock()
 		defer mu.Unlock()
-		jobExitCodeString =  m.Attributes["job_exit_code"]
-		if jobExitCodeString != "0" {
-			logrus.Errorf("Job exit code: %s", m.Attributes["job_exit_code"])
-		}
+		jobExitCodeString = m.Attributes["job_exit_code"]
 		cancel()
 	})
-	if err != nil {
-		return 1, err
-	}
-	if jobExitCodeString != "0" {
+
+	// waiting pubsub receive
+	if jobExitCodeString == "" {
+		logrus.Errorf("A command might be timeout...")
+		return 1, nil
+	} else if jobExitCodeString != "0" {
+		logrus.Errorf("Job exit code: %s", jobExitCodeString)
 		return 1, nil
 	}
-
 	return 0, nil
 
 }
