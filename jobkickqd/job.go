@@ -1,8 +1,8 @@
 package jobkickqd
 
 import (
+	"bytes"
 	"context"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"syscall"
@@ -45,14 +45,9 @@ func (j *Job) Execute(ctx context.Context) error {
 	j.Cmd.Env = append(os.Environ())
 	j.Cmd.Env = append(j.Environment)
 
-	logFilename := "logs/" + j.JobExecutionID + ".log"
-	logFile, err := NewFileMessageDriver(logFilename)
-	if err != nil {
-		return err
-	}
-	defer logFile.Close(ctx)
-	j.Cmd.Stderr = &logFile.file
-	j.Cmd.Stdout = &logFile.file
+	var stdout bytes.Buffer
+	j.Cmd.Stderr = &stdout
+	j.Cmd.Stdout = &stdout
 	j.StartedAt = time.Now()
 
 
@@ -79,14 +74,8 @@ func (j *Job) Execute(ctx context.Context) error {
 	}
 
 	j.FinishedAt = time.Now()
+	j.ExecutionLog = stdout.String()
 
-	data, err := ioutil.ReadFile(logFilename)
-	if err != nil {
-		j.ExecutionLog = "ERROR:Cannot open a log file." + err.Error()
-	} else {
-		j.ExecutionLog = string(data)
-	}
-	j.ExecutionLog = string(data)
 	return nil
 }
 

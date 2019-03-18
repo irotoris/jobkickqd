@@ -2,9 +2,6 @@ package jobkickqd
 
 import (
 	"context"
-	"os"
-	"path/filepath"
-
 	"github.com/sirupsen/logrus"
 
 	"cloud.google.com/go/pubsub"
@@ -51,43 +48,4 @@ func (ld *PubSubMessageDriver) Write(ctx context.Context, message string, attrib
 	logrus.Infof("Published a message with a message ID: %s", id)
 
 	return id, nil
-}
-
-// FileMessageDriver is ...
-type FileMessageDriver struct {
-	filePath string
-	file     os.File
-}
-
-// NewFileMessageDriver is ///
-func NewFileMessageDriver(filePath string) (*FileMessageDriver, error) {
-	ld := new(FileMessageDriver)
-	ld.filePath = filePath
-	logDirectory, _ := filepath.Split(filePath)
-	err := os.MkdirAll(logDirectory, 0755)
-	if err != nil {
-		return nil, err
-	}
-	logFile, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
-	if err != nil {
-		return nil, err
-	}
-	ld.file = *logFile
-
-	return ld, nil
-}
-
-func (ld *FileMessageDriver) Write(ctx context.Context, message string) error {
-	if _, err := ld.file.Write(([]byte)(message)); err != err {
-		return err
-	}
-	return nil
-}
-
-// Close is ...
-func (ld *FileMessageDriver) Close(ctx context.Context) error {
-	if err := ld.file.Close(); err != nil {
-		return err
-	}
-	return nil
 }

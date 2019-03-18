@@ -39,29 +39,3 @@ func TestPubSubMessageDriver_Write(t *testing.T) {
 		}
 	}
 }
-
-func TestFileMessageDriver_Write(t *testing.T) {
-	ctx := context.Background()
-	logFilePath := "logs/test-job.log"
-	ld, err := NewFileMessageDriver(logFilePath)
-	if err != nil {
-		fmt.Println("err", err)
-		t.Error("NewFileLogDriver is failed.")
-	}
-	defer ld.Close(ctx)
-
-	logMessages := [5]string{"test logs 1.", "test logs 2.", "test logs 3.", "test logs 4.", "test logs 5."}
-	for _, msg := range logMessages {
-		err = ld.Write(ctx, msg)
-		if err != nil {
-			fmt.Println("err", err)
-			t.Error("NewFileLogWrite() is failed.")
-		}
-	}
-
-	_, err = os.Stat(logFilePath)
-	if err != nil {
-		fmt.Println("err", err)
-		t.Error("NewFileLogWrite() is failed. A log file not found.")
-	}
-}
