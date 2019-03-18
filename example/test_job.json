@@ -1,10 +1,10 @@
 {
   "job_id": "testjob",
-  "command": "env",
+  "command": "sh /Users/irotoris/go/src/github.com/irotoris/jobkickqd/test.sh",
   "environment": [
-    "env=dev",
-    "role=test"
+    "ENV=dev",
+    "ROLE=test"
   ],
-  "timeout": 60,
+  "timeout": 120,
   "retry": 0
 }

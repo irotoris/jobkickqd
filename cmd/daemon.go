@@ -2,13 +2,14 @@ package cmd
 
 import (
 	"context"
+	"os"
+
 	"github.com/irotoris/jobkickqd/jobkickqd"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"os"
 )
 
-var jobSubscriptionName string
+var jobQueueTopicName string
 var logTopicName string
 var daemonApp string
 
@@ -24,7 +25,7 @@ var daemonCmd = &cobra.Command{
 			logrus.Errorf("Failed to create a pubsub log driver.: %s", err)
 		}
 
-		q, err := jobkickqd.NewPubSubJobQueueExecutor(ctx, projectID, jobSubscriptionName, daemonApp)
+		q, err := jobkickqd.NewPubSubJobQueueExecutor(ctx, projectID, jobQueueTopicName, daemonApp, daemonApp)
 		if err != nil {
 			logrus.Errorf("Failed to create a pubsub job queue executor.: %s", err)
 		}
@@ -42,7 +43,7 @@ func init() {
 	logrus.SetLevel(logrus.InfoLevel)
 	rootCmd.AddCommand(daemonCmd)
 	daemonCmd.PersistentFlags().StringVar(&projectID, "projectID", "", "GCP project name")
-	daemonCmd.PersistentFlags().StringVar(&jobSubscriptionName, "jobSubscriptionName", "", "Colud PubSub subscription name for job queue")
+	daemonCmd.PersistentFlags().StringVar(&jobQueueTopicName, "jobQueueTopicName", "", "Colud PubSub topic name for job queue")
 	daemonCmd.PersistentFlags().StringVar(&logTopicName, "logTopicName", "", "Colud PubSub topic name for log stream")
 	daemonCmd.PersistentFlags().StringVar(&daemonApp, "daemonApp", "", "key of application of daemon.")
 

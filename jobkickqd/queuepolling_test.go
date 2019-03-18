@@ -26,18 +26,13 @@ func TestPubSubJobQueue_Run(t *testing.T) {
 		t.Error("topicNameForJobQueue is required.")
 	}
 
-	subscriptionName, ok := os.LookupEnv("subscriptionName")
-	if !ok {
-		t.Error("subscriptionName is required.")
-	}
-
 	logDriver, err := NewPubSubMessageDriver(ctx, projectID, topicNameForLog)
 	if err != nil {
 		fmt.Println("err", err)
 		t.Error("NewPubSubMessageDriver is failed.")
 	}
 
-	queueDriver, err := NewPubSubJobQueueExecutor(ctx, projectID, subscriptionName, "test-app")
+	queueDriver, err := NewPubSubJobQueueExecutor(ctx, projectID, topicNameForJobQueue, "test-app", "test-app")
 	if err != nil {
 		fmt.Println("err", err)
 		t.Error("NewPubSubJobQueueExecutor is failed.")

@@ -152,14 +152,17 @@ func submit(args []string) (int, error) {
 	// Start subscribe log messages
 
 	// add interval 5 seconds for timeout
-	cctx, cancel := context.WithTimeout(ctx, time.Duration((timeoutInt+5)*1) * time.Second)
+	cctx, cancel := context.WithTimeout(ctx, time.Duration((timeoutInt+5)*1)*time.Second)
 	var jobExitCodeString string
 	var mu sync.Mutex
 	sub.Receive(cctx, func(ctx context.Context, m *pubsub.Message) {
+		logrus.Debugf("message id:%s", m.ID)
+		logrus.Debugf("message body:%s", string(m.Data))
+		logrus.Debugf("message attr:%s", m.Attributes)
+		m.Ack()
 		if m.Attributes["job_execution_id"] != jobExecutionID {
 			return
 		}
-		m.Ack()
 		logrus.Infof("Job stdout/stderr:\n%s", string(m.Data))
 		mu.Lock()
 		defer mu.Unlock()

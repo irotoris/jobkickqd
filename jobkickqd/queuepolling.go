@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"sync"
 	"time"
 
 	"cloud.google.com/go/pubsub"
@@ -16,23 +15,30 @@ type JobQueueExecutor interface {
 }
 
 type PubSubJobQueue struct {
-	projectID        string
-	subscriptionName string
-	pubsubClient     pubsub.Client
-	subscription     pubsub.Subscription
-	daemonApp        string
+	projectID    string
+	pubsubClient pubsub.Client
+	topic        pubsub.Topic
+	subscription pubsub.Subscription
+	daemonApp    string
 }
 
-func NewPubSubJobQueueExecutor(ctx context.Context, projectID, subscriptionName, daemonApp string) (*PubSubJobQueue, error) {
+func NewPubSubJobQueueExecutor(ctx context.Context, projectID, topicName, subscriptionName, daemonApp string) (*PubSubJobQueue, error) {
 	qd := new(PubSubJobQueue)
 	qd.projectID = projectID
-	qd.subscriptionName = subscriptionName
 	pubsubClient, err := pubsub.NewClient(ctx, projectID)
 	if err != nil {
 		return nil, err
 	}
 	qd.pubsubClient = *pubsubClient
-	sub := pubsubClient.Subscription(subscriptionName)
+	topic := pubsubClient.Topic(topicName)
+	sub, err := pubsubClient.CreateSubscription(ctx, subscriptionName, pubsub.SubscriptionConfig{
+		Topic:       topic,
+		AckDeadline: 10 * time.Second,
+	})
+	if err != nil {
+		logrus.Warnf("%s", err)
+		sub = pubsubClient.Subscription(subscriptionName)
+	}
 	qd.subscription = *sub
 	qd.daemonApp = daemonApp
 
@@ -40,8 +46,7 @@ func NewPubSubJobQueueExecutor(ctx context.Context, projectID, subscriptionName,
 }
 
 func (jq *PubSubJobQueue) Run(ctx, cctx context.Context, ld PubSubMessageDriver) error {
-	logrus.Infof("Start job queue polling and command executor. project:%s, job queue subscription:%s, command log topic:%s", jq.projectID, jq.subscriptionName, ld.topicName)
-	var mu sync.Mutex
+	logrus.Infof("Start job queue polling and command executor. project:%s, job queue subscription:%s, command log topic:%s", jq.projectID, jq.subscription.ID(), ld.topicName)
 	err := jq.subscription.Receive(cctx, func(ctx context.Context, m *pubsub.Message) {
 		logrus.Infof("Received a job message:%s :%s :%s", m.ID, string(m.Data), m.Attributes)
 		if m.Attributes["app"] != jq.daemonApp {
@@ -49,8 +54,6 @@ func (jq *PubSubJobQueue) Run(ctx, cctx context.Context, ld PubSubMessageDriver)
 		}
 		// TODO: check and stop duplicate execution
 		m.Ack()
-		mu.Lock()
-		defer mu.Unlock()
 		if m.Attributes["app"] != jq.daemonApp {
 			return
 		}
@@ -69,7 +72,7 @@ func (jq *PubSubJobQueue) Run(ctx, cctx context.Context, ld PubSubMessageDriver)
 			logrus.Errorf("Failed to create new job object.: %s", err)
 			return
 		}
-		attributes := map[string]string{"app": jq.daemonApp, "job_execution_id": jobExecutionID, "job_exit_code": fmt.Sprintf("%d",j.JobExitCode)}
+		attributes := map[string]string{"app": jq.daemonApp, "job_execution_id": jobExecutionID, "job_exit_code": fmt.Sprintf("%d", j.JobExitCode)}
 
 		if _, err := ld.Write(ctx, j.ExecutionLog, attributes); err != nil {
 			logrus.Errorf("Failed to write log to a log driver.: %s", err)

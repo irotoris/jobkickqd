@@ -2,6 +2,7 @@ package jobkickqd
 
 import (
 	"context"
+
 	"github.com/sirupsen/logrus"
 
 	"cloud.google.com/go/pubsub"
@@ -45,7 +46,7 @@ func (ld *PubSubMessageDriver) Write(ctx context.Context, message string, attrib
 		logrus.Errorf("Failed to publish a message: %s", err)
 		return "", err
 	}
-	logrus.Infof("Published a message with a message ID: %s", id)
+	logrus.Infof("Published a message to pubsub[%s] with a message ID: %s", ld.topicName, id)
 
 	return id, nil
 }
