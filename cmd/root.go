@@ -15,6 +15,9 @@ var cfgFile string
 var logDir string
 var verbose bool
 var projectID string
+var jobQueueTopic string
+var logTopic string
+var app string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{

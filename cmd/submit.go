@@ -15,13 +15,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var jobTopicName string
 var jobConfigFile string
 var jobID string
 var command string
 var environmentString string
 var timeoutInt int
-var app string
 
 // submitCmd represents the submit command
 var submitCmd = &cobra.Command{
@@ -42,8 +40,8 @@ func init() {
 	logrus.SetLevel(logrus.InfoLevel)
 	rootCmd.AddCommand(submitCmd)
 	submitCmd.PersistentFlags().StringVar(&projectID, "projectID", "", "GCP project name")
-	submitCmd.PersistentFlags().StringVar(&jobTopicName, "jobTopicName", "", "Colud PubSub topic name for job queue")
-	submitCmd.PersistentFlags().StringVar(&logTopicName, "logTopicName", "", "Colud PubSub topic name for job logs")
+	submitCmd.PersistentFlags().StringVar(&jobQueueTopic, "jobTopicName", "", "Colud PubSub topic name for job queue")
+	submitCmd.PersistentFlags().StringVar(&logTopic, "logTopic", "", "Colud PubSub topic name for job logs")
 	submitCmd.PersistentFlags().StringVar(&jobConfigFile, "jobConfigFile", "", "Job config filename")
 	submitCmd.PersistentFlags().StringVar(&jobID, "jobID", "", "Job ID")
 	submitCmd.PersistentFlags().StringVar(&command, "command", "", "command")
@@ -120,7 +118,7 @@ func submit(args []string) (int, error) {
 		logrus.Errorf("%s", err)
 		return 1, nil
 	}
-	topic := pubsubClient.Topic(logTopicName)
+	topic := pubsubClient.Topic(logTopic)
 	sub, err := pubsubClient.CreateSubscription(ctx, jobID, pubsub.SubscriptionConfig{
 		Topic:       topic,
 		AckDeadline: 10 * time.Second,
@@ -132,7 +130,7 @@ func submit(args []string) (int, error) {
 	defer sub.Delete(ctx)
 
 	// Publish a job
-	kickq, err := jobkickqd.NewPubSubMessageDriver(ctx, projectID, jobTopicName)
+	kickq, err := jobkickqd.NewPubSubMessageDriver(ctx, projectID, jobQueueTopic)
 	if err != nil {
 		logrus.Errorf("%s", err)
 		return 1, err
@@ -149,12 +147,14 @@ func submit(args []string) (int, error) {
 	}
 	jobExecutionID := jobID + id
 
-	// Start subscribe log messages
 
 	// add interval 5 seconds for timeout
 	cctx, cancel := context.WithTimeout(ctx, time.Duration((timeoutInt+5)*1)*time.Second)
+
 	var jobExitCodeString string
 	var mu sync.Mutex
+
+	// Start subscribe log messages
 	sub.Receive(cctx, func(ctx context.Context, m *pubsub.Message) {
 		logrus.Debugf("message id:%s", m.ID)
 		logrus.Debugf("message body:%s", string(m.Data))
@@ -170,7 +170,6 @@ func submit(args []string) (int, error) {
 		cancel()
 	})
 
-	// waiting pubsub receive
 	if jobExitCodeString == "" {
 		logrus.Errorf("A command might be timeout...")
 		return 1, nil

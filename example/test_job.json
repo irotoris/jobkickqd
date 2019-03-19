@@ -1,6 +1,6 @@
 {
   "job_id": "testjob",
-  "command": "sh /Users/irotoris/go/src/github.com/irotoris/jobkickqd/test.sh",
+  "command": "pwd",
   "environment": [
     "ENV=dev",
     "ROLE=test"
