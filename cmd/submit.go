@@ -40,7 +40,7 @@ func init() {
 	logrus.SetLevel(logrus.InfoLevel)
 	rootCmd.AddCommand(submitCmd)
 	submitCmd.PersistentFlags().StringVar(&projectID, "projectID", "", "GCP project name")
-	submitCmd.PersistentFlags().StringVar(&jobQueueTopic, "jobTopicName", "", "Colud PubSub topic name for job queue")
+	submitCmd.PersistentFlags().StringVar(&jobQueueTopic, "jobQueueTopic", "", "Colud PubSub topic name for job queue")
 	submitCmd.PersistentFlags().StringVar(&logTopic, "logTopic", "", "Colud PubSub topic name for job logs")
 	submitCmd.PersistentFlags().StringVar(&jobConfigFile, "jobConfigFile", "", "Job config filename")
 	submitCmd.PersistentFlags().StringVar(&jobID, "jobID", "", "Job ID")
