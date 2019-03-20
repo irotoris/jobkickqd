@@ -155,7 +155,7 @@ func submit(args []string) (int, error) {
 	var mu sync.Mutex
 
 	// Start subscribe log messages
-	sub.Receive(cctx, func(ctx context.Context, m *pubsub.Message) {
+	err = sub.Receive(cctx, func(ctx context.Context, m *pubsub.Message) {
 		logrus.Debugf("message id:%s", m.ID)
 		logrus.Debugf("message body:%s", string(m.Data))
 		logrus.Debugf("message attr:%s", m.Attributes)

@@ -39,6 +39,7 @@ func NewPubSubJobQueueExecutor(ctx context.Context, projectID, topicName, subscr
 		logrus.Warnf("%s", err)
 		sub = pubsubClient.Subscription(subscriptionName)
 	}
+	qd.topic = *topic
 	qd.subscription = *sub
 	qd.daemonApp = daemonApp
 
@@ -46,23 +47,22 @@ func NewPubSubJobQueueExecutor(ctx context.Context, projectID, topicName, subscr
 }
 
 func (jq *PubSubJobQueue) Run(ctx, cctx context.Context, ld PubSubMessageDriver) error {
-	logrus.Infof("Start job queue polling and command executor. project:%s, job queue subscription:%s, command log topic:%s", jq.projectID, jq.subscription.ID(), ld.topicName)
+	logrus.Infof("Start job queue polling and command executor. project:%s, job queue topic:%s, subscription:%s, command log topic:%s", jq.projectID, jq.topic.ID(), jq.subscription.ID(), ld.topicName)
 	err := jq.subscription.Receive(cctx, func(ctx context.Context, m *pubsub.Message) {
 		logrus.Infof("Received a job message:%s :%s :%s :%s", m.PublishTime, m.ID, string(m.Data), m.Attributes)
 
 		// TODO: check and stop duplicate execution
 		m.Ack()
 
+		if m.Attributes["app"] != jq.daemonApp {
+			logrus.Debugf("This message app is not match. %s != %s", jq.daemonApp, m.Attributes["app"], )
+			return
+		}
 		now := time.Now()
 		if now.Sub(m.PublishTime) > 5 * time.Minute {
 			logrus.Warnf("This message was published more than 5 minutes ago. Skip job...")
 			return
 		}
-		if m.Attributes["app"] != jq.daemonApp {
-			logrus.Debugf("This message app is not match. %s != %s", jq.daemonApp, m.Attributes["app"], )
-			return
-		}
-
 
 		var jm DefaultJobMessage
 		if err := json.Unmarshal(m.Data, &jm); err != nil {

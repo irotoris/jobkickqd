@@ -50,6 +50,12 @@ func (j *Job) Execute(ctx context.Context) error {
 	j.Cmd.Stdout = &stdout
 	j.StartedAt = time.Now()
 
+	err := os.Mkdir(j.JobExecutionID, 0777)
+	if err != nil {
+		return err
+	}
+
+	j.Cmd.Dir = j.JobExecutionID
 
 	j.Cmd.Start()
 
