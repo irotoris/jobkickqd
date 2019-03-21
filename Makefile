@@ -14,18 +14,18 @@ deps:
 .PHONY: build
 ## Build binaries
 build: deps
-	go build -ldflags $(LDFLAGS) -o build/$(NAME)
+	go build -ldflags "$(LDFLAGS)" -o build/$(NAME)
 
 .PHONY: build-linux-amd64
 ## Build binaries for Linux(AMD64)
 cross-build:
 	rm -rf $(PKGDIR)
-	GOOS=linux GOARCH=amd64 go build -ldflags $(LDFLAGS) -o build/$(NAME)-linux-adm64 main.go
+	GOOS=linux GOARCH=amd64 go build -ldflags "$(LDFLAGS)" -o build/$(NAME)-linux-adm64 main.go
 
 .PHONY: install
 ## compile and install
 install:
-	go install -ldflags $(LDFLAGS)
+	go install -ldflags "$(LDFLAGS)"
 
 .PHONY: test
 ## Run tests
