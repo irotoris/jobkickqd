@@ -10,18 +10,21 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// JobQueueExecutor is...
 type JobQueueExecutor interface {
 	Run()
 }
 
+// PubSubJobQueue is...
 type PubSubJobQueue struct {
 	projectID    string
 	pubsubClient pubsub.Client
-	topic        pubsub.Topic
-	subscription pubsub.Subscription
+	topic        *pubsub.Topic
+	subscription *pubsub.Subscription
 	daemonApp    string
 }
 
+// NewPubSubJobQueueExecutor is...
 func NewPubSubJobQueueExecutor(ctx context.Context, projectID, topicName, subscriptionName, daemonApp string) (*PubSubJobQueue, error) {
 	qd := new(PubSubJobQueue)
 	qd.projectID = projectID
@@ -39,13 +42,14 @@ func NewPubSubJobQueueExecutor(ctx context.Context, projectID, topicName, subscr
 		logrus.Warnf("%s", err)
 		sub = pubsubClient.Subscription(subscriptionName)
 	}
-	qd.topic = *topic
-	qd.subscription = *sub
+	qd.topic = topic
+	qd.subscription = sub
 	qd.daemonApp = daemonApp
 
 	return qd, nil
 }
 
+// Run is...
 func (jq *PubSubJobQueue) Run(ctx, cctx context.Context, ld PubSubMessageDriver) error {
 	logrus.Infof("Start job queue polling and command executor. project:%s, job queue topic:%s, subscription:%s, command log topic:%s", jq.projectID, jq.topic.ID(), jq.subscription.ID(), ld.topicName)
 	err := jq.subscription.Receive(cctx, func(ctx context.Context, m *pubsub.Message) {
@@ -55,11 +59,11 @@ func (jq *PubSubJobQueue) Run(ctx, cctx context.Context, ld PubSubMessageDriver)
 		m.Ack()
 
 		if m.Attributes["app"] != jq.daemonApp {
-			logrus.Debugf("This message app is not match. %s != %s", jq.daemonApp, m.Attributes["app"], )
+			logrus.Debugf("This message app is not match. %s != %s", jq.daemonApp, m.Attributes["app"])
 			return
 		}
 		now := time.Now()
-		if now.Sub(m.PublishTime) > 5 * time.Minute {
+		if now.Sub(m.PublishTime) > 5*time.Minute {
 			logrus.Warnf("This message was published more than 5 minutes ago. Skip job...")
 			return
 		}

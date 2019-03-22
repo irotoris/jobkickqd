@@ -16,23 +16,23 @@ func TestPubSubJobQueue_Run(t *testing.T) {
 		t.Error("projectID is required.")
 	}
 
-	topicNameForLog, ok := os.LookupEnv("topicNameForLog")
+	logTopic, ok := os.LookupEnv("logTopic")
 	if !ok {
-		t.Error("topicNameForLog is required.")
+		t.Error("logTopic is required.")
 	}
 
-	topicNameForJobQueue, ok := os.LookupEnv("topicNameForJobQueue")
+	jobQueueTopic, ok := os.LookupEnv("jobQueueTopic")
 	if !ok {
-		t.Error("topicNameForJobQueue is required.")
+		t.Error("jobQueueTopic is required.")
 	}
 
-	logDriver, err := NewPubSubMessageDriver(ctx, projectID, topicNameForLog)
+	logDriver, err := NewPubSubMessageDriver(ctx, projectID, logTopic)
 	if err != nil {
 		fmt.Println("err", err)
 		t.Error("NewPubSubMessageDriver is failed.")
 	}
 
-	queueDriver, err := NewPubSubJobQueueExecutor(ctx, projectID, topicNameForJobQueue, "test-app", "test-app")
+	queueDriver, err := NewPubSubJobQueueExecutor(ctx, projectID, jobQueueTopic, "test-app", "test-app")
 	if err != nil {
 		fmt.Println("err", err)
 		t.Error("NewPubSubJobQueueExecutor is failed.")
@@ -44,7 +44,7 @@ func TestPubSubJobQueue_Run(t *testing.T) {
 	go queueDriver.Run(ctx, cctx, *logDriver)
 
 	// publish test job
-	kickq, err := NewPubSubMessageDriver(ctx, projectID, topicNameForJobQueue)
+	kickq, err := NewPubSubMessageDriver(ctx, projectID, jobQueueTopic)
 	if err != nil {
 		fmt.Println("err", err)
 		t.Error("NewPubSubMessageDriver is failed.")
@@ -53,24 +53,33 @@ func TestPubSubJobQueue_Run(t *testing.T) {
 	time.Sleep(1 * time.Second)
 
 	msgs := []string{
-		"{\"job_id\":\"test-from-queue\",\"job_execution_id\":\"test-00001\",\"command\":\"sleep 1;echo \\\"env is ${ENV}\\\"\",\"Environment\":[\"ENV=dev1\",\"ROLE=test1\"],\"timeout\":60,\"retry\":0}",
-		"{\"job_id\":\"test-from-queue\",\"job_execution_id\":\"test-00002\",\"command\":\"echo \\\"env is ${ENV}\\\"\",\"Environment\":[\"ENV=dev2\",\"ROLE=test2\"],\"timeout\":60,\"retry\":0}",
-		"{\"job_id\":\"test-from-queue\",\"job_execution_id\":\"test-00003\",\"command\":\"echo \\\"env is ${ENV}\\\"\",\"Environment\":[\"ENV=dev3\",\"ROLE=test3\"],\"timeout\":60,\"retry\":0}",
-		"{\"job_id\":\"test-from-queue\",\"job_execution_id\":\"test-00004\",\"command\":\"sleep 3;echo \\\"env is ${ENV}\\\"\",\"Environment\":[\"ENV=dev4\",\"ROLE=test4\"],\"timeout\":60,\"retry\":0}",
-		"{\"job_id\":\"test-from-queue\",\"job_execution_id\":\"test-00005\",\"command\":\"sleep 300\",\"Environment\":[\"ENV=dev\",\"ROLE=test\"],\"timeout\":3,\"retry\":0}",
+		"{\"job_id\":\"test-from-queue\",\"command\":\"sleep 1;echo \\\"env is ${ENV}\\\"\",\"Environment\":[\"ENV=dev1\",\"ROLE=test1\"],\"timeout\":60}",
+		"{\"job_id\":\"test-from-queue\",\"command\":\"echo \\\"env is ${ENV}\\\"\",\"Environment\":[\"ENV=dev2\",\"ROLE=test2\"],\"timeout\":60}",
+		"{\"job_id\":\"test-from-queue\",\"command\":\"echo \\\"env is ${ENV}\\\"\",\"Environment\":[\"ENV=dev3\",\"ROLE=test3\"],\"timeout\":60}",
+		"{\"job_id\":\"test-from-queue\",\"command\":\"sleep 3;echo \\\"env is ${ENV}\\\"\",\"Environment\":[\"ENV=dev4\",\"ROLE=test4\"],\"timeout\":60}",
+		"{\"job_id\":\"test-from-queue\",\"command\":\"sleep 300\",\"Environment\":[\"ENV=dev\",\"ROLE=test\"],\"timeout\":3}",
 	}
 	attribute := map[string]string{
 		"app": "test-app",
 	}
+	msgIDs := []string{}
 	for _, msg := range msgs {
-		_, err = kickq.Write(ctx, msg, attribute)
+		id, err := kickq.Write(ctx, msg, attribute)
 		if err != nil {
 			fmt.Println("err", err)
 			t.Error("Write() is failed.")
 		}
+		msgIDs = append(msgIDs, id)
 	}
 
 	time.Sleep(10 * time.Second)
 	cancel()
+
+	for _, msgID := range msgIDs {
+		dir := "test-from-queue" + msgID
+		if err := os.RemoveAll(dir); err != nil {
+			t.Errorf("post script is failed in job_test.go. %v", err)
+		}
+	}
 
 }

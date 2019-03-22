@@ -2,13 +2,14 @@ package jobkickqd
 
 import (
 	"context"
+	"os"
 	"testing"
 	"time"
 )
 
 func TestExecute(t *testing.T) {
 	ctx := context.Background()
-	jobID := "testJob"
+	jobID := "testJob1"
 	cmdString := "echo \"command success test, env is ${ENV}.\""
 	envs := []string{"ENV=test"}
 	timeout := 60 * time.Second
@@ -16,14 +17,17 @@ func TestExecute(t *testing.T) {
 
 	err := j.Execute(ctx)
 	if err != nil {
-		t.Error("Execute command is failed.")
+		t.Errorf("Execute command is failed.:%v", err)
+	}
+	if err := os.RemoveAll(jobID); err != nil {
+		t.Errorf("post script is failed in job_test.go. %v", err)
 	}
 }
 
 func TestKill(t *testing.T) {
 	ctx := context.Background()
 
-	jobID := "testJob"
+	jobID := "testJob2"
 	cmdString := "sleep 1"
 	var envs []string
 	timeout := 60 * time.Second
@@ -34,6 +38,9 @@ func TestKill(t *testing.T) {
 	time.Sleep(500 * time.Millisecond)
 	err := j.Kill(ctx)
 	if err != nil {
-		t.Error("Kill Process is failed.")
+		t.Errorf("Kill Process is failed.:%v", err)
+	}
+	if err := os.RemoveAll(jobID); err != nil {
+		t.Errorf("post script is failed in job_test.go. %v", err)
 	}
 }
