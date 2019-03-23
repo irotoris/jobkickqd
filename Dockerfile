@@ -2,6 +2,7 @@ FROM golang:latest as builder
 
 ENV GOOS=linux
 ENV GOARCH=amd64
+ENV CGO_ENABLED=0
 WORKDIR /go/src/github.com/irotoris/jobkickqd
 COPY . .
 RUN make build
