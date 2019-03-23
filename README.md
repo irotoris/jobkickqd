@@ -70,6 +70,12 @@ Linux
 
 build a binary, require golang `1.11 or later`
 
-```$bash
+```bash
 make build
+```
+
+or doker build
+
+```bash
+docker build . -t jobkickqd
 ```
