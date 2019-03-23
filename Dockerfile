@@ -8,4 +8,4 @@ RUN make build
 
 FROM alpine
 RUN apk add --no-cache ca-certificates
-COPY --from=builder /go/src/github.com/irotoris/build/jobkickqd /usr/local/bin/jobkickqd
+COPY --from=builder /go/src/github.com/irotoris/jobkickqd/build/jobkickqd /usr/local/bin/jobkickqd
