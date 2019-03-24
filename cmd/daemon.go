@@ -17,15 +17,18 @@ var daemonCmd = &cobra.Command{
 	Short: "Start commands polling.",
 	Long:  `Start commands polling.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		if workDir != "" {
+			daemonConfig.WorkDir = workDir
+		}
 		if daemonConfig.WorkDir != "" {
-			if _, err := os.Stat(workDir); os.IsNotExist(err) {
-				err := os.Mkdir(workDir, 0777)
+			if _, err := os.Stat(daemonConfig.WorkDir); os.IsNotExist(err) {
+				err := os.Mkdir(daemonConfig.WorkDir, 0777)
 				if err != nil {
 					logrus.Fatalf("cannot create directory to %s: %v", daemonConfig.WorkDir, err)
 				}
 			}
 
-			err := os.Chdir(workDir)
+			err := os.Chdir(daemonConfig.WorkDir)
 			if err != nil {
 				logrus.Fatalf("cannot change directory to %s: %v", daemonConfig.WorkDir, err)
 			}
@@ -54,8 +57,4 @@ func init() {
 	logrus.SetLevel(logrus.InfoLevel)
 	rootCmd.AddCommand(daemonCmd)
 	daemonCmd.PersistentFlags().StringVar(&workDir, "workDir", "", "daemon work directory.")
-
-	if daemonConfig.WorkDir == "" {
-		daemonConfig.WorkDir = workDir
-	}
 }

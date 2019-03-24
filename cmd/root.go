@@ -43,14 +43,13 @@ func Execute() {
 }
 
 func init() {
-
+	cobra.OnInitialize(initConfig)
 	rootCmd.PersistentFlags().StringVar(&configFile, "config", "", "daemon config file")
 	rootCmd.PersistentFlags().BoolVar(&verbose, "verbose", false, "log option")
 	rootCmd.PersistentFlags().StringVar(&projectID, "projectID", "", "GCP project name")
 	rootCmd.PersistentFlags().StringVar(&jobQueueTopic, "jobQueueTopic", "", "Colud PubSub topic name for job queue")
 	rootCmd.PersistentFlags().StringVar(&logTopic, "logTopic", "", "Colud PubSub topic name for log stream")
 	rootCmd.PersistentFlags().StringVar(&app, "app", "", "key of application of daemon.")
-	cobra.OnInitialize(initConfig)
 	if projectID != "" {
 		daemonConfig.ProjectID = projectID
 	}
