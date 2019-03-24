@@ -4,15 +4,16 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/irotoris/jobkickqd/jobkickqd"
+
 	"github.com/sirupsen/logrus"
 
-	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
-var cfgFile string
-var logDir string
+var configFile string
+var daemonConfig jobkickqd.DaemonConfig
 var verbose bool
 var projectID string
 var jobQueueTopic string
@@ -33,43 +34,51 @@ var rootCmd = &cobra.Command{
 	},
 }
 
+// Execute is...
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
+		logrus.Errorf("%v", err)
 		os.Exit(1)
 	}
 }
 
 func init() {
-	cobra.OnInitialize(initConfig)
 
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.config/jobkickqd.json)")
-	rootCmd.PersistentFlags().StringVar(&logDir, "logdir", ".", "log directory (default is the current dir")
+	rootCmd.PersistentFlags().StringVar(&configFile, "config", "", "daemon config file")
 	rootCmd.PersistentFlags().BoolVar(&verbose, "verbose", false, "log option")
+	rootCmd.PersistentFlags().StringVar(&projectID, "projectID", "", "GCP project name")
+	rootCmd.PersistentFlags().StringVar(&jobQueueTopic, "jobQueueTopic", "", "Colud PubSub topic name for job queue")
+	rootCmd.PersistentFlags().StringVar(&logTopic, "logTopic", "", "Colud PubSub topic name for log stream")
+	rootCmd.PersistentFlags().StringVar(&app, "app", "", "key of application of daemon.")
+	cobra.OnInitialize(initConfig)
+	if projectID != "" {
+		daemonConfig.ProjectID = projectID
+	}
+	if jobQueueTopic != "" {
+		daemonConfig.JobQueueTopic = jobQueueTopic
+	}
+	if logTopic != "" {
+		daemonConfig.LogTopic = logTopic
+	}
+	if app != "" {
+		daemonConfig.App = app
+	}
 }
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
-	if cfgFile != "" {
+	if configFile != "" {
 		// Use config file from the flag.
-		viper.SetConfigFile(cfgFile)
-	} else {
-		// Find home directory.
-		home, err := homedir.Dir()
-		if err != nil {
+		viper.SetConfigFile(configFile)
+
+		if err := viper.ReadInConfig(); err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
-
-		// Search config in home directory with name ".config" (without extension).
-		viper.AddConfigPath(home)
-		viper.SetConfigName(".config")
-	}
-
-	viper.AutomaticEnv() // read in environment variables that match
-
-	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err == nil {
-		fmt.Println("Using config file:", viper.ConfigFileUsed())
+		viper.AutomaticEnv() // read in environment variables that match
+		if err := viper.Unmarshal(&daemonConfig); err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
 	}
 }

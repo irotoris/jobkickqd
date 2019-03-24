@@ -21,22 +21,22 @@ var daemonCmd = &cobra.Command{
 			if _, err := os.Stat(workDir); os.IsNotExist(err) {
 				err := os.Mkdir(workDir, 0777)
 				if err != nil {
-					logrus.Fatalf("cannot create directory to %s: %v", workDir, err)
+					logrus.Fatalf("cannot create directory to %s: %v", daemonConfig.WorkDir, err)
 				}
 			}
 
 			err := os.Chdir(workDir)
 			if err != nil {
-				logrus.Fatalf("cannot change directory to %s: %v", workDir, err)
+				logrus.Fatalf("cannot change directory to %s: %v", daemonConfig.WorkDir, err)
 			}
 		}
 		ctx := context.Background()
-		l, err := jobkickqd.NewPubSubMessageDriver(ctx, projectID, logTopic)
+		l, err := jobkickqd.NewPubSubMessageDriver(ctx, daemonConfig.ProjectID, daemonConfig.LogTopic)
 		if err != nil {
 			logrus.Errorf("Failed to create a pubsub log driver.: %s", err)
 		}
 
-		q, err := jobkickqd.NewPubSubJobQueueExecutor(ctx, projectID, jobQueueTopic, app, app)
+		q, err := jobkickqd.NewPubSubJobQueueExecutor(ctx, daemonConfig.ProjectID, daemonConfig.JobQueueTopic, daemonConfig.App, daemonConfig.App)
 		if err != nil {
 			logrus.Errorf("Failed to create a pubsub job queue executor.: %s", err)
 		}
@@ -53,11 +53,9 @@ func init() {
 	logrus.SetOutput(os.Stdout)
 	logrus.SetLevel(logrus.InfoLevel)
 	rootCmd.AddCommand(daemonCmd)
-	daemonCmd.PersistentFlags().StringVar(&projectID, "projectID", "", "GCP project name")
-	daemonCmd.PersistentFlags().StringVar(&jobQueueTopic, "jobQueueTopic", "", "Colud PubSub topic name for job queue")
-	daemonCmd.PersistentFlags().StringVar(&logTopic, "logTopic", "", "Colud PubSub topic name for log stream")
-	daemonCmd.PersistentFlags().StringVar(&app, "app", "", "key of application of daemon.")
 	daemonCmd.PersistentFlags().StringVar(&workDir, "workDir", "", "daemon work directory.")
 
-
+	if daemonConfig.WorkDir == "" {
+		daemonConfig.WorkDir = workDir
+	}
 }

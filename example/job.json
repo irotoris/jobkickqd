@@ -1,10 +1,9 @@
 {
-  "job_id": "testjob",
+  "jobID": "testjob",
   "command": "pwd",
   "environment": [
     "ENV=dev",
     "ROLE=test"
   ],
-  "timeout": 120,
-  "retry": 0
+  "timeout": 120
 }
