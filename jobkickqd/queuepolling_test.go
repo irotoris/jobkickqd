@@ -53,11 +53,11 @@ func TestPubSubJobQueue_Run(t *testing.T) {
 	time.Sleep(1 * time.Second)
 
 	msgs := []string{
-		"{\"job_id\":\"test-from-queue\",\"command\":\"sleep 1;echo \\\"env is ${ENV}\\\"\",\"Environment\":[\"ENV=dev1\",\"ROLE=test1\"],\"timeout\":60}",
-		"{\"job_id\":\"test-from-queue\",\"command\":\"echo \\\"env is ${ENV}\\\"\",\"Environment\":[\"ENV=dev2\",\"ROLE=test2\"],\"timeout\":60}",
-		"{\"job_id\":\"test-from-queue\",\"command\":\"echo \\\"env is ${ENV}\\\"\",\"Environment\":[\"ENV=dev3\",\"ROLE=test3\"],\"timeout\":60}",
-		"{\"job_id\":\"test-from-queue\",\"command\":\"sleep 3;echo \\\"env is ${ENV}\\\"\",\"Environment\":[\"ENV=dev4\",\"ROLE=test4\"],\"timeout\":60}",
-		"{\"job_id\":\"test-from-queue\",\"command\":\"sleep 300\",\"Environment\":[\"ENV=dev\",\"ROLE=test\"],\"timeout\":3}",
+		"{\"jobID\":\"test-from-queue\",\"command\":\"sleep 1;echo \\\"env is ${ENV}\\\"\",\"Environment\":[\"ENV=dev1\",\"ROLE=test1\"],\"timeout\":60}",
+		"{\"jobID\":\"test-from-queue\",\"command\":\"echo \\\"env is ${ENV}\\\"\",\"Environment\":[\"ENV=dev2\",\"ROLE=test2\"],\"timeout\":60}",
+		"{\"jobID\":\"test-from-queue\",\"command\":\"echo \\\"env is ${ENV}\\\"\",\"Environment\":[\"ENV=dev3\",\"ROLE=test3\"],\"timeout\":60}",
+		"{\"jobID\":\"test-from-queue\",\"command\":\"sleep 3;echo \\\"env is ${ENV}\\\"\",\"Environment\":[\"ENV=dev4\",\"ROLE=test4\"],\"timeout\":60}",
+		"{\"jobID\":\"test-from-queue\",\"command\":\"sleep 300\",\"Environment\":[\"ENV=dev\",\"ROLE=test\"],\"timeout\":3}",
 	}
 	attribute := map[string]string{
 		"app": "test-app",

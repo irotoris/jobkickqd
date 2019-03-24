@@ -1,0 +1,8 @@
+{
+  "projectID": "project",
+  "jobQueueTopic": "jobq",
+  "logTopic": "logq",
+  "app": "app",
+  "workDir": "workspace"
+}
+  

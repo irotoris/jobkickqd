@@ -39,15 +39,11 @@ func init() {
 	logrus.SetOutput(os.Stdout)
 	logrus.SetLevel(logrus.InfoLevel)
 	rootCmd.AddCommand(submitCmd)
-	submitCmd.PersistentFlags().StringVar(&projectID, "projectID", "", "GCP project name")
-	submitCmd.PersistentFlags().StringVar(&jobQueueTopic, "jobQueueTopic", "", "Colud PubSub topic name for job queue")
-	submitCmd.PersistentFlags().StringVar(&logTopic, "logTopic", "", "Colud PubSub topic name for job logs")
 	submitCmd.PersistentFlags().StringVar(&jobConfigFile, "jobConfigFile", "", "Job config filename")
 	submitCmd.PersistentFlags().StringVar(&jobID, "jobID", "", "Job ID")
 	submitCmd.PersistentFlags().StringVar(&command, "command", "", "command")
 	submitCmd.PersistentFlags().StringVar(&environmentString, "environment", "", "environment")
 	submitCmd.PersistentFlags().IntVar(&timeoutInt, "timeout", 300, "timeout of command")
-	submitCmd.PersistentFlags().StringVar(&app, "app", "default", "key of application")
 }
 
 func submit(args []string) (int, error) {
@@ -105,20 +101,15 @@ func submit(args []string) (int, error) {
 		d = data
 	}
 
-	if app == "" {
-		logrus.Errorf("--app is required.")
-		return 1, nil
-	}
-
 	ctx := context.Background()
 
 	// Initialize to subscribe log messages
-	pubsubClient, err := pubsub.NewClient(ctx, projectID)
+	pubsubClient, err := pubsub.NewClient(ctx, daemonConfig.ProjectID)
 	if err != nil {
 		logrus.Errorf("%s", err)
 		return 1, nil
 	}
-	topic := pubsubClient.Topic(logTopic)
+	topic := pubsubClient.Topic(daemonConfig.LogTopic)
 	sub, err := pubsubClient.CreateSubscription(ctx, jobID, pubsub.SubscriptionConfig{
 		Topic:       topic,
 		AckDeadline: 10 * time.Second,
@@ -130,14 +121,14 @@ func submit(args []string) (int, error) {
 	defer sub.Delete(ctx)
 
 	// Publish a job
-	kickq, err := jobkickqd.NewPubSubMessageDriver(ctx, projectID, jobQueueTopic)
+	kickq, err := jobkickqd.NewPubSubMessageDriver(ctx, daemonConfig.ProjectID, daemonConfig.JobQueueTopic)
 	if err != nil {
 		logrus.Errorf("%s", err)
 		return 1, err
 	}
 
 	attribute := map[string]string{
-		"app": app,
+		"app": daemonConfig.App,
 	}
 
 	id, err := kickq.Write(ctx, string(d), attribute)
@@ -146,7 +137,6 @@ func submit(args []string) (int, error) {
 		return 1, err
 	}
 	jobExecutionID := jobID + id
-
 
 	// add interval 5 seconds for timeout
 	cctx, cancel := context.WithTimeout(ctx, time.Duration((timeoutInt+5)*1)*time.Second)
