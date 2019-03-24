@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -36,8 +37,6 @@ var submitCmd = &cobra.Command{
 }
 
 func init() {
-	logrus.SetOutput(os.Stdout)
-	logrus.SetLevel(logrus.InfoLevel)
 	rootCmd.AddCommand(submitCmd)
 	submitCmd.PersistentFlags().StringVar(&jobConfigFile, "jobConfigFile", "", "Job config filename")
 	submitCmd.PersistentFlags().StringVar(&jobID, "jobID", "", "Job ID")
@@ -153,7 +152,8 @@ func submit(args []string) (int, error) {
 		if m.Attributes["job_execution_id"] != jobExecutionID {
 			return
 		}
-		logrus.Infof("Job stdout/stderr:\n%s", string(m.Data))
+		logrus.Debugf("Job stdout/stderr:\n%s", string(m.Data))
+		fmt.Printf("Job stdout/stderr:\n%s", string(m.Data))
 		mu.Lock()
 		defer mu.Unlock()
 		jobExitCodeString = m.Attributes["job_exit_code"]

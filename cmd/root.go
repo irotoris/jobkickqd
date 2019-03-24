@@ -43,6 +43,10 @@ func Execute() {
 }
 
 func init() {
+	logrus.SetOutput(os.Stdout)
+	logrus.SetLevel(logrus.InfoLevel)
+	logrus.SetFormatter(&logrus.JSONFormatter{})
+
 	cobra.OnInitialize(initConfig)
 	rootCmd.PersistentFlags().StringVar(&configFile, "config", "", "daemon config file")
 	rootCmd.PersistentFlags().BoolVar(&verbose, "verbose", false, "log option")

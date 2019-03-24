@@ -53,8 +53,6 @@ var daemonCmd = &cobra.Command{
 }
 
 func init() {
-	logrus.SetOutput(os.Stdout)
-	logrus.SetLevel(logrus.InfoLevel)
 	rootCmd.AddCommand(daemonCmd)
 	daemonCmd.PersistentFlags().StringVar(&workDir, "workDir", "", "daemon work directory.")
 }
