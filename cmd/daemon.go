@@ -17,7 +17,7 @@ var daemonCmd = &cobra.Command{
 	Short: "Start commands polling.",
 	Long:  `Start commands polling.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if workDir != "" {
+		if daemonConfig.WorkDir != "" {
 			if _, err := os.Stat(workDir); os.IsNotExist(err) {
 				err := os.Mkdir(workDir, 0777)
 				if err != nil {
