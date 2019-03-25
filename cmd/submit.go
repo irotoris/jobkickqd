@@ -117,6 +117,7 @@ func submit(args []string) (int, error) {
 		logrus.Warnf("%s", err)
 		sub = pubsubClient.Subscription(jobID)
 	}
+	logrus.Infof("Subscribe log topic[%s] with subscription[%s].", topic.ID(), sub.ID())
 	defer sub.Delete(ctx)
 
 	// Publish a job
