@@ -54,18 +54,6 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&jobQueueTopic, "jobQueueTopic", "", "Colud PubSub topic name for job queue")
 	rootCmd.PersistentFlags().StringVar(&logTopic, "logTopic", "", "Colud PubSub topic name for log stream")
 	rootCmd.PersistentFlags().StringVar(&app, "app", "", "key of application of daemon.")
-	if projectID != "" {
-		daemonConfig.ProjectID = projectID
-	}
-	if jobQueueTopic != "" {
-		daemonConfig.JobQueueTopic = jobQueueTopic
-	}
-	if logTopic != "" {
-		daemonConfig.LogTopic = logTopic
-	}
-	if app != "" {
-		daemonConfig.App = app
-	}
 }
 
 // initConfig reads in config file and ENV variables if set.
@@ -83,5 +71,17 @@ func initConfig() {
 			fmt.Println(err)
 			os.Exit(1)
 		}
+	}
+	if projectID != "" {
+		daemonConfig.ProjectID = projectID
+	}
+	if jobQueueTopic != "" {
+		daemonConfig.JobQueueTopic = jobQueueTopic
+	}
+	if logTopic != "" {
+		daemonConfig.LogTopic = logTopic
+	}
+	if app != "" {
+		daemonConfig.App = app
 	}
 }

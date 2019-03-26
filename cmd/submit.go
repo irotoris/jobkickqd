@@ -154,7 +154,7 @@ func submit(args []string) (int, error) {
 			return
 		}
 		logrus.Debugf("Job stdout/stderr:\n%s", string(m.Data))
-		fmt.Printf("Job stdout/stderr:\n%s", string(m.Data))
+		fmt.Printf("########### command stdout/stderr ###########\n%s\n######### command stdout/stderr end #########\n", string(m.Data))
 		mu.Lock()
 		defer mu.Unlock()
 		jobExitCodeString = m.Attributes["job_exit_code"]
@@ -165,7 +165,7 @@ func submit(args []string) (int, error) {
 		logrus.Errorf("A command might be timeout...")
 		return 1, nil
 	} else if jobExitCodeString != "0" {
-		logrus.Errorf("Job exit code: %s", jobExitCodeString)
+		logrus.Errorf("command exit code: %s", jobExitCodeString)
 		return 1, nil
 	}
 	return 0, nil
