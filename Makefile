@@ -8,7 +8,6 @@ CURRENT  := $(shell pwd)
 ## Install dependencies
 deps:
 	go get golang.org/x/lint
-	go get github.com/Songmu/make2help/cmd/make2help
 	go get ./...
 
 .PHONY: build
@@ -19,8 +18,7 @@ build: deps
 .PHONY: build-linux-amd64
 ## Build binaries for Linux(AMD64)
 cross-build:
-	rm -rf $(PKGDIR)
-	GOOS=linux GOARCH=amd64 go build -ldflags "$(LDFLAGS)" -o build/$(NAME)-linux-adm64 main.go
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "$(LDFLAGS)" -o build/$(NAME)-linux-adm64 main.go
 
 .PHONY: install
 ## compile and install
@@ -36,9 +34,3 @@ test: deps
 ## Clean
 clean:
 	go clean
-	rm -rf $(BUILDDIR)
-
-.PHONY: help
-## Show help
-help:
-	@make2help $(MAKEFILE_LIST)
