@@ -1,7 +1,7 @@
 NAME     := jobkickqd
 VERSION  := v0.0.0
 REVISION := $(shell git rev-parse --short HEAD)
-LDFLAGS  := -X 'main.version=$(VERSION)' -X 'main.Revision=$(REVISION)'
+LDFLAGS  := -X 'github.com/irotoris/jobkickqd/cmd.version=$(VERSION)' -X 'github.com/irotoris/jobkickqd/cmd.revision=$(REVISION)'
 CURRENT  := $(shell pwd)
 
 .PHONY: deps
