@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
-	"sync"
 	"time"
 
 	"cloud.google.com/go/pubsub"
@@ -118,7 +117,6 @@ func submit(args []string) (int, error) {
 		sub = pubsubClient.Subscription(jobID)
 	}
 	logrus.Infof("Subscribe log topic[%s] with subscription[%s].", topic.ID(), sub.ID())
-	defer sub.Delete(ctx)
 
 	// Publish a job
 	kickq, err := jobkickqd.NewPubSubMessageDriver(ctx, daemonConfig.ProjectID, daemonConfig.JobQueueTopic)
@@ -142,7 +140,6 @@ func submit(args []string) (int, error) {
 	cctx, cancel := context.WithTimeout(ctx, time.Duration((timeoutInt+5)*1)*time.Second)
 
 	var jobExitCodeString string
-	var mu sync.Mutex
 
 	// Start subscribe log messages
 	err = sub.Receive(cctx, func(ctx context.Context, m *pubsub.Message) {
@@ -155,11 +152,11 @@ func submit(args []string) (int, error) {
 		}
 		logrus.Debugf("Job stdout/stderr:\n%s", string(m.Data))
 		fmt.Printf("########### command stdout/stderr ###########\n%s\n######### command stdout/stderr end #########\n", string(m.Data))
-		mu.Lock()
-		defer mu.Unlock()
 		jobExitCodeString = m.Attributes["job_exit_code"]
 		cancel()
 	})
+
+	sub.Delete(ctx)
 
 	if jobExitCodeString == "" {
 		logrus.Errorf("A command might be timeout...")
