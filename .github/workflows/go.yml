@@ -24,16 +24,12 @@ jobs:
 
     - name: Build
       run: make build
-
-    - name: Prepare Test
-      run: echo $KEY > key.json
-      env:
-        KEY: ${{ secrets.KEY }}
-
+      
     - name: Test
-      run: make test
+      run: echo $KEY > key.json && make test
       env:
         projectID: ${{ secrets.PROJECT_ID }}
         logTopic: jobkickqd-log-queue
         jobQueueTopic: jobkickqd-job-queue
+        KEY: ${{ secrets.KEY }}
         GOOGLE_APPLICATION_CREDENTIALS: key.json
