@@ -25,8 +25,11 @@ jobs:
     - name: Build
       run: make build
 
+    - name: Prepare Test
+      run: echo ${{ secrets.KEY }} > key.json
+
     - name: Test
-      run: echo ${{ secrets.KEY }} > key.json && make test
+      run: make test
       env:
         projectID: ${{ secrets.PROJECT_ID }}
         logTopic: jobkickqd-log-queue
