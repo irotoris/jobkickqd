@@ -24,12 +24,17 @@ jobs:
 
     - name: Build
       run: make build
-      
+    
+    - name: Prepare Test
+      uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
+      with:
+        project_id: ${{ secrets.PROJECT_ID }}
+        service_account_key: ${{ secrets.KEY }}
+        export_default_credentials: true
+        
     - name: Test
-      run: echo $KEY > key.json && make test
+      run: make test
       env:
         projectID: ${{ secrets.PROJECT_ID }}
         logTopic: jobkickqd-log-queue
         jobQueueTopic: jobkickqd-job-queue
-        KEY: ${{ secrets.KEY }}
-        GOOGLE_APPLICATION_CREDENTIALS: key.json
